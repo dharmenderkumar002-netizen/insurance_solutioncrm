@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    // Redirect to main layout if not in an iframe.
+    // This prevents direct access to the page.
+    if (window.self === window.top) {
+        // The path to layout.html from this page.
+        window.location.href = '../../layout.html';
+    }
+</script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Health Commission Breakdown</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/assets/css/gic.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #fff; font-family: 'Inter', sans-serif; padding: 0; margin: 0; }
+        .top-green-bar { background-color: #374151; color: white; padding: 10px 20px; font-size: 16px; font-weight: 500; display: flex; align-items: center; justify-content: space-between; }
+        .container { padding: 20px; padding-bottom: 80px; }
+        .info-row { display: flex; gap: 20px; margin-bottom: 15px; }
+        .info-col { flex: 1; }
+        .info-label { font-weight: bold; font-size: 13px; color: #333; margin-bottom: 5px; }
+        .info-box { background-color: #f0f0f0; border: 1px solid #ccc; padding: 8px 12px; font-size: 13px; color: #555; border-radius: 3px; }
+        .details-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .details-table thead th { background-color: #e2e8f0; color: #333; font-weight: 600; padding: 8px; text-align: left; font-size: 11px; border: 1px solid #ddd; white-space: nowrap; }
+        .details-table tbody td { padding: 6px; border: 1px solid #ddd; vertical-align: middle; font-size: 11px; }
+        .action-cell { display: flex; justify-content: center; gap: 12px; }
+        .edit-btn { color: #337ab7; cursor: pointer; font-size: 14px; }
+        .remove-btn { color: #d9534f; cursor: pointer; font-size: 14px; }
+        .action-bar { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 15px; }
+        .btn-action { padding: 10px 25px; border-radius: 4px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; display: flex; align-items: center; gap: 8px; }
+        .btn-back { background-color: #6c757d; color: white; }
+        .btn-save { background-color: #374151; color: white; }
+        
+        /* Modal Style */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 750px; max-width: 95%; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); overflow: hidden; }
+        .modal-header { background: #374151; color: white; padding: 12px 20px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; max-height: 80vh; overflow-y: auto; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .full-width { grid-column: span 2; }
+        .form-group label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .form-group input, .form-group select { width: 100%; padding: 7px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; box-sizing: border-box; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 15px; grid-column: span 2; background: #f9f9f9; padding: 10px; border-radius: 4px; border: 1px dashed #ccc; }
+        .checkbox-item { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .modal-footer { padding: 15px 20px; text-align: right; border-top: 1px solid #eee; }
+
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px 20px; position: fixed; z-index: 2001; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 14px; }
+        #toast.show { visibility: visible; animation: fadein 0.3s, fadeout 0.3s 2.5s; }
+        @keyframes fadein { from {bottom: 10px; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 10px; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+<div class="top-green-bar">
+    <span><i class="fas fa-heartbeat"></i> Health Commission Breakdown</span>
+</div>
+
+<div class="container">
+    <div class="info-row">
+        <div class="info-col">
+            <div class="info-label">Dealer Name</div>
+            <div class="info-box" id="dispName">Loading...</div>
+        </div>
+        <div class="info-col">
+            <div class="info-label">Commission Date</div>
+            <div class="info-box" id="dispDate">--</div>
+        </div>
+    </div>
+
+    <table class="details-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Company</th>
+                <th>Product</th>
+                <th>Policy Type</th>
+                <th>Term</th>
+                <th title="Percent On Net">% ON</th>
+                <th>Sum Assured (Range)</th>
+                <th>Fixed</th>
+                <th>% Age</th>
+                <th style="text-align:center;">Action</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <button class="btn-action" style="background:#337ab7; color:white; margin-top:15px;" onclick="openModal()">
+        <i class="fas fa-plus-circle"></i> Add New Criteria
+    </button>
+
+    <div class="action-bar">
+        <button class="btn-action btn-back" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="btn-action btn-save" id="btnSave" onclick="saveData()"><i class="fas fa-save"></i> Save Commission</button>
+    </div>
+</div>
+
+<div id="toast">Data loaded</div>
+
+<div class="modal-overlay" id="addModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span id="modalTitle">Add Health Criteria</span>
+            <span style="cursor:pointer" onclick="closeModal()">✖</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Insurance Company *</label>
+                    <select id="m_company"><option value="">Select Company</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Health Product *</label>
+                    <select id="m_product"><option value="">Select Product</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Policy Type</label>
+                    <select id="m_policy_type">
+                        <option value="All">All Types</option>
+                        <option value="Fresh">Fresh</option>
+                        <option value="Renewal">Renewal</option>
+                        <option value="Portability">Portability</option>
+                    </select>
+                </div>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="m_percent_on_net">
+                        <label for="m_percent_on_net">Calculate on Net Premium</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Policy Term</label>
+                    <select id="m_term">
+                        <option value="All">All Terms</option>
+                        <option value="1 Year">1 Year</option>
+                        <option value="2 Year">2 Years</option>
+                        <option value="3 Year">3 Years</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sum Assured (From - To)</label>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="m_sa_from" placeholder="0">
+                        <input type="text" id="m_sa_to" placeholder="Max">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Fixed Amount (₹)</label>
+                    <input type="number" id="m_fixed" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Percentage (%)</label>
+                    <input type="number" id="m_percent" value="0" step="0.01">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-back" style="padding: 8px 15px; margin-right: 5px; background: #999;" onclick="closeModal()">Cancel</button>
+            <button class="btn-save" id="modalBtnAction" style="padding: 8px 15px; background: #337ab7;" onclick="addCriteriaToTable()">Add Rule</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Use a relative path for the API base. This works for both local and production.
+    // Assumes frontend and backend are on the same domain.
+    const API_BASE = "";
+    const params = new URLSearchParams(window.location.search);
+    const dealerName = decodeURIComponent(params.get("name") || "");
+    const currentDate = params.get("date") || new Date().toISOString().split('T')[0];
+
+    let editingRow = null;
+
+    /* ================= DATE HELPERS (STRICT FIX) ================= */
+    function formatDisplay(d) {
+        if (!d) return "--";
+        let str = String(d).trim();
+        // Case 1: YYYY-MM-DD
+        if (str.includes("-") && str.split("-")[0].length === 4) {
+            const [y, m, d_part] = str.split("-");
+            return `${d_part}-${m}-${y}`;
+        }
+        // Case 2: YYYYMMDD (8-digit)
+        if (str.length === 8 && !str.includes("-")) {
+            return `${str.substring(6,8)}-${str.substring(4,6)}-${str.substring(0,4)}`;
+        }
+        return str;
+    }
+
+    function toISODate(d) {
+        if (!d) return new Date().toISOString().split('T')[0];
+        let str = String(d).trim();
+        if (str.includes("-") && str.split("-")[0].length === 4) return str;
+        if (str.length === 8) {
+            return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
+        }
+        if (str.includes("-") && str.split("-")[0].length === 2) {
+            const [dd, mm, yyyy] = str.split("-");
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        return str;
+    }
+
+    document.getElementById("dispName").innerText = dealerName || "Not Selected";
+    document.getElementById("dispDate").innerText = formatDisplay(currentDate);
+
+    /* ================= API & MASTERS ================= */
+    async function fetchJson(url) {
+        try {
+            const res = await fetch(url);
+            return await res.json();
+        } catch (e) { return null; }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg; t.className = "show";
+        setTimeout(() => t.className = t.className.replace("show", ""), 3000);
+    }
+
+    function populateSelect(id, json, key) {
+        const select = document.getElementById(id);
+        if (!select || !json?.data) return;
+        select.innerHTML = `<option value="">Select</option>`;
+        json.data.forEach(i => {
+            const val = i[key] || i.name;
+            if (val && (i.status === "Active" || !i.status)) {
+                const opt = document.createElement("option");
+                opt.value = val; opt.textContent = val;
+                select.appendChild(opt);
+            }
+        });
+    }
+
+    async function loadMasters() {
+        const [cRes, pRes] = await Promise.all([
+            fetchJson(`${API_BASE}/api/master/item/insurancecompany`),
+            fetchJson(`${API_BASE}/api/master/item/healthproduct`)
+        ]);
+        populateSelect("m_company", cRes, "companyName");
+        populateSelect("m_product", pRes, "name");
+    }
+
+    /* ================= TABLE & MODAL ================= */
+    function openModal(isEdit = false) {
+        document.getElementById("addModal").style.display = "flex";
+        if (!isEdit) {
+            editingRow = null;
+            document.getElementById("modalTitle").innerText = "Add Health Criteria";
+            document.getElementById("modalBtnAction").innerText = "Add Rule";
+            clearForm();
+        }
+    }
+    function closeModal() { document.getElementById("addModal").style.display = "none"; }
+
+    function clearForm() {
+        ["m_company","m_product","m_sa_from","m_sa_to"].forEach(id => document.getElementById(id).value = "");
+        ["m_fixed","m_percent"].forEach(id => document.getElementById(id).value = 0);
+        document.getElementById("m_policy_type").value = "All";
+        document.getElementById("m_term").value = "All";
+        document.getElementById("m_percent_on_net").checked = false;
+    }
+
+    function addCriteriaToTable() {
+        const data = {
+            company: el("m_company").value,
+            product: el("m_product").value,
+            policyType: el("m_policy_type").value,
+            term: el("m_term").value,
+            percentOnNet: el("m_percent_on_net").checked,
+            saRange: `${el("m_sa_from").value || 0}-${el("m_sa_to").value || "Max"}`,
+            fixed: Number(el("m_fixed").value || 0),
+            percent: Number(el("m_percent").value || 0)
+        };
+
+        if (!data.company || !data.product) return alert("Required fields missing");
+
+        const tbody = document.getElementById("tableBody");
+        const row = editingRow || tbody.insertRow();
+        row.innerHTML = `
+            <td></td>
+            <td>${data.company}</td>
+            <td>${data.product}</td>
+            <td>${data.policyType}</td>
+            <td>${data.term}</td>
+            <td data-value="${data.percentOnNet}">${data.percentOnNet ? "✔" : "-"}</td>
+            <td>${data.saRange}</td>
+            <td>₹${data.fixed}</td>
+            <td>${data.percent}%</td>
+            <td class="action-cell">
+                <i class="fas fa-edit edit-btn" onclick="editRow(this)"></i>
+                <i class="fas fa-trash remove-btn" onclick="this.closest('tr').remove(); reorderSno();"></i>
+            </td>
+        `;
+        reorderSno();
+        closeModal();
+    }
+
+    function el(id) { return document.getElementById(id); }
+
+    function reorderSno() {
+        [...document.getElementById("tableBody").rows].forEach((r, i) => r.cells[0].innerText = i + 1);
+    }
+
+    function editRow(icon) {
+        editingRow = icon.closest("tr");
+        const c = editingRow.cells;
+        el("m_company").value = c[1].innerText;
+        el("m_product").value = c[2].innerText;
+        el("m_policy_type").value = c[3].innerText;
+        el("m_term").value = c[4].innerText;
+        el("m_percent_on_net").checked = c[5].dataset.value === "true";
+        const [f, t] = c[6].innerText.split("-");
+        el("m_sa_from").value = f; el("m_sa_to").value = t;
+        el("m_fixed").value = c[7].innerText.replace("₹", "");
+        el("m_percent").value = c[8].innerText.replace("%", "");
+        openModal(true);
+        document.getElementById("modalTitle").innerText = "Edit Health Criteria";
+        document.getElementById("modalBtnAction").innerText = "Update Rule";
+    }
+
+    /* ================= SAVE & LOAD ================= */
+    async function loadSavedData() {
+        const iso = toISODate(currentDate);
+        const safeName = encodeURIComponent(dealerName);
+        let url = `${API_BASE}/api/expenses/health/get-breakdown?dealerName=${safeName}&date=${iso}`;
+        let res = await fetchJson(url);
+
+        if (!res?.data?.length) {
+            url = `${API_BASE}/api/expenses/health/get-breakdown?dealerName=${safeName}&fetchLatest=true`;
+            res = await fetchJson(url);
+            if (res?.data?.length) showToast("Loaded latest setup");
+        }
+
+        if (res?.success && res.data) {
+            const tbody = document.getElementById("tableBody");
+            tbody.innerHTML = "";
+            res.data.forEach((i, idx) => {
+                const r = tbody.insertRow();
+                r.innerHTML = `
+                    <td>${idx + 1}</td>
+                    <td>${i.company}</td>
+                    <td>${i.product}</td>
+                    <td>${i.policyType || "All"}</td>
+                    <td>${i.term || "All"}</td>
+                    <td data-value="${i.percentOnNet}">${i.percentOnNet ? "✔" : "-"}</td>
+                    <td>${i.saRange || "0-Max"}</td>
+                    <td>₹${i.fixed || 0}</td>
+                    <td>${i.percent || 0}%</td>
+                    <td class="action-cell">
+                        <i class="fas fa-edit edit-btn" onclick="editRow(this)"></i>
+                        <i class="fas fa-trash remove-btn" onclick="this.closest('tr').remove(); reorderSno();"></i>
+                    </td>
+                `;
+            });
+        }
+    }
+
+    async function saveData() {
+        const rows = [...document.getElementById("tableBody").rows];
+        if (!rows.length) return alert("Add some criteria first");
+
+        const items = rows.map(r => ({
+            company: r.cells[1].innerText,
+            product: r.cells[2].innerText,
+            policyType: r.cells[3].innerText,
+            term: r.cells[4].innerText,
+            percentOnNet: r.cells[5].dataset.value === "true",
+            saRange: r.cells[6].innerText,
+            fixed: Number(r.cells[7].innerText.replace("₹", "")),
+            percent: Number(r.cells[8].innerText.replace("%", ""))
+        }));
+
+        const iso = toISODate(currentDate);
+        const btn = document.getElementById("btnSave");
+        btn.innerText = "Saving..."; btn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/expenses/health/save-breakdown`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ dealerName, date: iso, items })
+            });
+            const j = await res.json();
+            if (j.success) showToast("✅ Commission Saved!");
+            else alert("Error: " + j.message);
+        } catch (e) { alert("Server Error"); }
+        finally { btn.innerText = "Save Commission"; btn.disabled = false; }
+    }
+
+    loadMasters();
+    loadSavedData();
+</script>
+</body>
+</html>

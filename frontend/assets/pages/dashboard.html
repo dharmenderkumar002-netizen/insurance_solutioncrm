@@ -1,0 +1,66 @@
+<script>
+    // Redirect to main layout if not in an iframe.
+    // This prevents direct access to the page.
+    if (window.self === window.top) {
+        // The path to layout.html from this page.
+        window.location.href = 'layout.html';
+    }
+</script>
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h2>CRM Menu</h2>
+
+  <a href="/pages/dashboard.html">🏠 Dashboard</a>
+
+  <a href="/pages/customer.html">👤 Customer Entry</a>
+  <a href="/pages/gic.html">🚗 GIC – General Insurance</a>
+  <a href="/pages/health.html">🏥 Health Insurance</a>
+  <a href="/pages/lic.html">📄 LIC Policies</a>
+  <a href="/pages/nonmotor.html">🚚 Non-Motor Insurance</a>
+
+  <a href="/pages/track.html">📌 Track Renewals</a>
+  <a href="/pages/expenses.html">💰 Expenses</a>
+
+  <!-- ⭐ UPDATED MASTER DATA MENU ⭐ -->
+   
+  <div class="menu-group">
+  <div class="menu-title" onclick="toggleMenu('masterMenu')">Master <span class="chev" id="chev-master">▸</span></div>
+  <div id="masterMenu" class="submenu">
+
+    <a href="#" onclick="loadPage('/pages/master/add-bank.html'); return false;">Add Bank</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-coverage.html'); return false;">Add Coverage</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-dealer.html'); return false;">Add Dealer</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-fuel.html'); return false;">Add Fuel</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-gic-product.html'); return false;">Add GIC Product</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-health-plan.html'); return false;">Add Health Plan</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-insurance-co.html'); return false;">Add Insurance Company</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-insyear.html'); return false;">Add Insurance Year</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-lic-plan.html'); return false;">Add LIC Plan</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-nonmotor-plan.html'); return false;">Add Non-Motor Plan</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-partner.html'); return false;">Add Partner</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-paymentmode.html'); return false;">Add Payment Mode</a>
+
+    <a href="#" onclick="loadPage('/pages/master/add-vehicle.html'); return false;">Add Vehicle</a>
+    
+
+  </div>
+</div>
+
+  <!-- END MASTER MENU -->
+
+  <a href="/pages/settings.html">⚙ Settings</a>
+  <a href="/pages/reports.html">📊 Reports</a>
+
+  <a href="#" onclick="logout()">🚪 Logout</a>
+</div>

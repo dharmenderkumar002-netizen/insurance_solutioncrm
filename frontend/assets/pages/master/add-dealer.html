@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Add Dealer Master</title>
+    <style>
+        body{font-family:'Inter', Arial, sans-serif; background:#f4f6f9; padding:18px; color: #333;}
+        .box{background:#fff; padding:20px; border-radius:8px; max-width:980px; box-shadow:0 2px 10px rgba(0,0,0,.1); margin: auto;}
+        h2 { border-bottom: 2px solid #013859; padding-bottom: 10px; color: #013859; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .full-width { grid-column: span 2; }
+        label{display:block; margin:8px 0 6px; font-weight:600; font-size: 13px;}
+        input, select{width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; box-sizing: border-box;}
+        input[readonly] { background-color: #eee; }
+        .btn-group { margin-top: 20px; display: flex; gap: 10px; }
+        .btn{padding:10px 20px; border:none; border-radius:6px; background:#013859; color:#fff; cursor:pointer; font-weight: bold;}
+        .btn-new { background:#ff9800; }
+        
+        table{width:100%; border-collapse:collapse; margin-top:20px; background: #fff;}
+        th{background:#f8f9fa; padding:12px; border:1px solid #eee; text-align:left; font-size: 13px;}
+        td{padding:10px; border:1px solid #eee; text-align:left; font-size: 13px;}
+        .action-btn{padding:5px 10px; border-radius:4px; border:none; cursor:pointer; font-size:12px; margin-right: 5px;}
+        .edit{background:#337ab7; color:#fff}
+        .del{background:#d9534f; color:#fff}
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2><i class="fas fa-user-plus"></i> ADD DEALER MASTER</h2>
+
+    <div class="form-grid">
+        <div>
+            <label>S.No (Auto)</label>
+            <input id="sno" readonly>
+        </div>
+        <div>
+            <label>Date *</label>
+            <input id="date" type="date">
+        </div>
+        <div class="full-width">
+            <label>Dealer Name *</label>
+            <input id="dealer_name" type="text" placeholder="Enter Dealer or Agency Name">
+        </div>
+        <div>
+            <label>Dealer Mobile *</label>
+            <input id="phone" type="tel" placeholder="10 Digit Mobile Number">
+        </div>
+        <div>
+            <label>Dealer Email</label>
+            <input id="email" type="email" placeholder="email@example.com">
+        </div>
+        <div>
+            <label>In / Out Status *</label>
+            <select id="inout">
+                <option value="In">In-House</option>
+                <option value="Out">Outside Partner</option>
+            </select>
+        </div>
+        <div>
+            <label>Account Status *</label>
+            <select id="status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn" id="saveBtn" onclick="saveDealer()">Save Dealer</button>
+        <button class="btn btn-new" onclick="resetForm()">Add New / Reset</button>
+    </div>
+</div>
+
+<div class="box" style="margin-top:20px; max-width: 1100px;">
+    <h3>Registered Dealer Records</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>S.No</th>
+                <th>Dealer Name</th>
+                <th>Phone</th>
+                <th>In/Out</th>
+                <th>Status</th>
+                <th>Saved Date</th>
+                <th style="text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+            <tr><td colspan="7" style="text-align: center;">Loading Dealers...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+const API_BASE = "http://localhost:4000";
+const API = `${API_BASE}/api/master/dealer`;
+let editId = null;
+
+// Today's date set karein
+function initForm(){
+    document.getElementById("date").value = new Date().toISOString().split("T")[0];
+    loadDealerSno();
+    loadList();
+}
+
+async function loadDealerSno() {
+    try {
+        const res = await fetch(API);
+        const json = await res.json();
+        document.getElementById("sno").value = (json.data ? json.data.length : 0) + 1;
+    } catch (err){ document.getElementById("sno").value = 1; }
+}
+
+function resetForm(){
+    editId = null;
+    document.getElementById("dealer_name").value = "";
+    document.getElementById("phone").value = "";
+    document.getElementById("email").value = "";
+    document.getElementById("status").value = "Active";
+    document.getElementById("inout").value = "In";
+    document.getElementById("saveBtn").innerText = "Save Dealer";
+    loadDealerSno();
+}
+
+function validate(){
+    const name = document.getElementById("dealer_name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+
+    if(!name){ alert("Please enter Dealer Name"); return false; }
+    if(!phone || phone.length < 10){ alert("Valid 10-digit Mobile is required"); return false; }
+    return true;
+}
+
+async function saveDealer(){
+    if(!validate()) return;
+
+    const dealerData = {
+        name: document.getElementById("dealer_name").value,
+        mobile: document.getElementById("phone").value,
+        email: document.getElementById("email").value,
+        inout: document.getElementById("inout").value,
+        status: document.getElementById("status").value,
+        date: document.getElementById("date").value,
+        s_no: document.getElementById("sno").value
+    };
+
+    try {
+        const url = editId ? `${API}/${editId}` : API;
+        const method = editId ? "PUT" : "POST";
+
+        const res = await fetch(url, {
+            method: method,
+            headers:{ "Content-Type":"application/json" },
+            body: JSON.stringify(dealerData)
+        });
+
+        const json = await res.json();
+        if(json.success){
+            alert(editId ? "Dealer updated!" : "Dealer saved!");
+            resetForm();
+            loadList();
+        } else {
+            alert("Error: " + json.message);
+        }
+    } catch (err) {
+        alert("Server Error. Make sure backend is running.");
+    }
+}
+
+async function loadList(){
+    try {
+        const res = await fetch(API);
+        const json = await res.json();
+        const tbody = document.getElementById("tbody");
+        tbody.innerHTML = "";
+
+        if(!json.data || json.data.length === 0){
+            tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;'>No dealers registered yet.</td></tr>";
+            return;
+        }
+
+        json.data.forEach((item, index) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.s_no || index + 1}</td>
+                    <td><strong>${item.name}</strong></td>
+                    <td>${item.mobile}</td>
+                    <td>${item.inout}</td>
+                    <td><span style="color: ${item.status==='Active'?'green':'red'}">${item.status}</span></td>
+                    <td>${item.date}</td>
+                    <td style="text-align: center;">
+                        <button class="action-btn edit" onclick="editItem('${item._id}')">Edit</button>
+                        <button class="action-btn del" onclick="deleteItem('${item._id}')">Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (e) { console.error("Load error", e); }
+}
+
+async function editItem(id){
+    const res = await fetch(API);
+    const json = await res.json();
+    const item = json.data.find(x => x._id === id);
+
+    if(!item) return;
+
+    editId = id;
+    document.getElementById("sno").value = item.s_no;
+    document.getElementById("dealer_name").value = item.name;
+    document.getElementById("phone").value = item.mobile;
+    document.getElementById("email").value = item.email;
+    document.getElementById("inout").value = item.inout;
+    document.getElementById("status").value = item.status;
+    document.getElementById("date").value = item.date;
+    
+    document.getElementById("saveBtn").innerText = "Update Dealer";
+    window.scrollTo(0,0);
+}
+
+async function deleteItem(id){
+    if(!confirm("Are you sure you want to delete this dealer?")) return;
+    try {
+        await fetch(`${API}/${id}`, { method:"DELETE" });
+        loadList();
+        loadDealerSno();
+    } catch (e) { alert("Delete failed"); }
+}
+
+// Start
+initForm();
+
+</script>
+<!-- Security Check -->
+<script src="../../js/auth.js"></script>
+</body>
+</html>

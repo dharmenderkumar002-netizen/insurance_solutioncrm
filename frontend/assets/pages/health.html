@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    // Redirect to main layout if not in an iframe.
+    // This prevents direct access to the page.
+    if (window.self === window.top) {
+        // The path to layout.html from this page.
+        window.location.href = 'layout.html';
+    }
+</script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Health Policy Entry</title>
+
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../css/gic.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* CSS RESET & BASICS */
+        * { box-sizing: border-box; }
+
+        /* TOAST NOTIFICATION */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px; }
+        .toast { background: #333; color: white; padding: 12px 16px; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; display: flex; align-items: center; justify-content: space-between; animation: slideIn 0.3s ease-out; }
+        .toast.error { background: #d9534f; }
+        .toast.success { background: #5cb85c; }
+        .toast.info { background: #31708f; }
+        .toast.warning { background: #f0ad4e; color: #fff; }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* SEARCH DROPDOWN */
+        #searchList { position: absolute; top: 100%; left: 0; min-width: 850px; max-width: 950px; max-height: 400px; overflow-y: auto; background: white; border: 1px solid #ccc; border-top: none; z-index: 2000; box-shadow: 0 10px 25px rgba(0,0,0,0.25); border-radius: 0 0 6px 6px; }
+        .search-item { display: grid; grid-template-columns: 110px 130px 70px 100px 1fr; gap: 12px; padding: 8px 12px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 12px; align-items: center; transition: background 0.1s; }
+        .search-item:hover { background-color: #f1f8ff; }
+
+        .si-header { background: #f4f4f4; font-weight: bold; color: #333; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #ddd; }
+        .si-section-header { background: #fff8e1; color: #b7791f; font-weight: bold; padding: 5px 10px; font-size: 11px; border-bottom: 1px solid #eee; text-transform: uppercase; letter-spacing: 0.5px; }
+        .si-val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #555; }
+        
+        /* ✅ SMART SUGGESTION BOX (Dealer) - SAME AS NON-MOTOR */
+        .smart-suggestion-box { position: absolute; bottom: 100%; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-bottom: none; margin-bottom: 2px; z-index: 1000; max-height: 200px; overflow-y: auto; box-shadow: 0 -4px 8px rgba(0,0,0,0.15); border-radius: 4px 4px 0 0; display: none; }
+        .smart-suggestion-item { padding: 10px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; }
+        .smart-suggestion-item:hover { background-color: #e3f2fd; }
+        .smart-suggestion-item b { color: #2c3e50; font-weight: 600; }
+        .smart-suggestion-item span { color: #007bff; font-size: 11px; font-weight: 500; }
+        .no-record { padding: 10px; color: #d9534f; text-align: center; font-style: italic; font-size: 12px; }
+        
+        /* ATTACHMENT BUTTON STYLE */
+        .attachment-btn { padding: 8px; background: #6c757d; color: white; border-radius: 4px; cursor: pointer; width: 100%; text-align: center; font-size: 13px; transition: background 0.2s; margin-top: 5px; }
+        .attachment-btn:hover { background: #5a6268; }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="sidebar">
+    <div class="logo"><img src="../images/logo.png" alt="logo"></div>
+    <a href="home.html">🏠 Home</a>
+    <a href="gic.html">🛠 GIC</a>
+    <a href="lic.html">🎯 LIC</a>
+    <a href="health.html" style="background:#374151">❤️ Health</a>
+    <a href="nonmotor.html">🚘 Non Motor</a>
+    <a href="track/track-all.html">📊 Track Service</a>
+    <a href="master/add-partner.html">⚙ Master</a>
+    <a href="#" onclick="logout()">🚪 Logout</a>
+</div>
+
+<div class="page-content">
+    <h2>Health Policy Entry</h2>
+
+    <div class="crm-card">
+        <h3>Customer & Service Actions</h3>
+        <div class="form-row" style="align-items: flex-end;">
+            <div class="form-col" style="position: relative; z-index: 101; flex: 2;"> 
+                <label for="searchBox">Search (Name, Mobile, Policy No)</label>
+                <input id="searchBox" placeholder="Start typing to search..." autocomplete="off">
+                <div id="searchList"></div>
+            </div>
+            <div class="form-col" style="flex: 0 0 120px; max-width: 120px; margin-bottom: 0;">
+                <button type="button" class="crm-button-accent crm-button-small" onclick="openCustomerPopup()" style="white-space: nowrap; width: 100%;">👤 + Add New</button>
+            </div>
+            
+            <datalist id="insuranceCoSuggestions"></datalist>
+            </div>
+    </div>
+
+    <div class="crm-card">
+        <h3>Customer Information</h3>
+        <input type="hidden" id="customerId">
+        <div class="form-row">
+            <div class="form-col"><label for="sno">S.No</label><input id="sno" readonly></div>
+            <div class="form-col"><label for="customerName">Customer Name *</label><input id="customerName" readonly></div>
+            <div class="form-col"><label for="customerMobile">Mobile</label><input id="customerMobile" readonly></div>
+            <div class="form-col"><label for="partner">Partner</label><select id="partner"></select></div>
+            <div class="form-col"><label for="customerEmail">Email ID</label><input id="customerEmail" readonly></div>
+            <div class="form-col"><label for="address">Address</label><input id="address" readonly></div>
+        </div>
+    </div>
+
+    <div class="crm-card">
+        <h3>Policy Details</h3>
+        <div class="form-row">
+            <div class="form-col">
+                <label for="healthProduct">Health Product *</label>
+                <select id="healthProduct">
+                    <option value="">-- Select Product --</option>
+                    </select>
+            </div>
+
+            <div class="form-col"><label for="policyNo">Policy No *</label><input id="policyNo"></div>
+            <div class="form-col"><label for="endorsementNo">Endorsement No</label><input id="endorsementNo"></div>
+            
+            <div class="form-col">
+                <label for="policyType">Policy Type *</label>
+                <select id="policyType">
+                    <option value="Fresh">Fresh</option>
+                    <option value="Renewal">Renewal</option>
+                    <option value="Portability">Portability</option>
+                </select>
+            </div>
+            
+            <div class="form-col"><label for="insuranceYear">Insurance Year</label><input id="insuranceYear" list="insuranceYearSuggestions"></div>
+            <datalist id="insuranceYearSuggestions"></datalist>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col"><label for="policyIssueDate">Policy Issue Date *</label><input type="date" id="policyIssueDate"></div>
+            <div class="form-col"><label for="startDate">Start Date *</label><input type="date" id="startDate"></div>
+            <div class="form-col"><label for="endDate">End Date *</label><input type="date" id="endDate"></div>
+            <div class="form-col"><label for="sumAssured">Sum Assured *</label><input type="number" id="sumAssured"></div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col"><label for="premium">Premium *</label><input type="number" id="premium"></div>
+            <div class="form-col"><label for="netPremium">Net Premium *</label><input type="number" id="netPremium"></div>
+            <div class="form-col"><label for="gst">GST (18%)</label><input type="number" id="gst" readonly placeholder="Auto Calc"></div>
+            
+            <div class="form-col" style="position:relative;">
+                <label for="dealerName" style="color:#b7791f;">Dealer (Payout) *</label>
+                <input id="dealerName" placeholder="Select dealer..." autocomplete="off" style="border-color:#ffeeba; background:#fffdf5;">
+                </div>
+
+            <div class="form-col">
+                <label for="insCompany">Insurance Company *</label>
+                <input id="insCompany" list="insuranceCoSuggestions" placeholder="Type to search Company...">
+            </div>
+        </div>
+        
+        <div class="form-row">
+             <div class="form-col"><label for="tpa">TPA</label><select id="tpa"></select></div>
+             <div class="form-col">
+                 <label for="status">Policy Status</label>
+                 <select id="status">
+                     <option value="Issued">Issued</option>
+                     <option value="Pending">Pending</option>
+                     <option value="Cancelled">Cancelled</option>
+                 </select>
+             </div>
+             <div class="form-col"></div> <div class="form-col"></div> 
+        </div>
+    </div>
+
+    <div class="crm-card">
+        <h3 style="background: #e9ecef; padding: 10px; border-radius: 4px;">Family Details (Insured Members)</h3>
+        
+        <div class="table-responsive">
+            <table class="crm-table" style="width:100%; border: 1px solid #ddd;">
+                <thead>
+                    <tr style="background-color: #90ee90; color: #333;">
+                        <th style="padding: 10px;">Name</th>
+                        <th style="padding: 10px;">DOB</th>
+                        <th style="padding: 10px;">Relation</th>
+                        <th style="padding: 10px; width: 50px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="familyTableBody">
+                    </tbody>
+            </table>
+        </div>
+        
+        <div style="margin-top: 10px;">
+            <button type="button" class="crm-button-primary" onclick="addFamilyRow()" style="padding: 6px 15px; background-color: #007bff; border-color: #007bff;">
+                + Add Member
+            </button>
+        </div>
+    </div>
+
+    <div class="crm-card">
+        <h3>Previous Policy (For Portability/Renewal)</h3>
+        <div class="form-row">
+            <div class="form-col"><label for="previousPolicyNo">PYP Policy No</label><input id="previousPolicyNo"></div>
+            <div class="form-col"><label for="pypInsCo">PYP Insurance Co</label><select id="pypInsCo"></select></div>
+            <div class="form-col"><label for="pypEndDate">PYP End Date</label><input type="date" id="pypEndDate"></div>
+            <div class="form-col"></div>
+        </div>
+    </div>
+
+    <div class="crm-card">
+        <h3>Payment & Documentation</h3>
+        <div class="form-row">
+            <div class="form-col"><label for="premiumamt">Premium Amt *</label><input id="premiumamt" placeholder="Prem. Amt."></div>
+            <div class="form-col"><label for="amountDate">Amount Received Date</label><input type="date" id="amountDate"></div>
+            <div class="form-col"><label for="paymentMode">Payment Mode</label><select id="paymentMode"></select></div>
+            <div class="form-col"><label for="chequeDd">Cheque / UPI Ref</label><input id="chequeDd"></div>
+            <div class="form-col"><label for="bankName">Bank Name</label><select id="bankName"></select></div>
+        </div>
+        
+        <div class="form-row" style="margin-top:15px;">
+             <div class="form-col">
+                <label>Policy PDF</label>
+                <div class="attachment-btn" id="policyUploadBtn">Upload Policy</div>
+            </div>
+             <div class="form-col">
+                <label>Proposal Form</label>
+                <div class="attachment-btn">Upload Proposal</div>
+            </div>
+             <div class="form-col">
+                <label>Medical Report</label>
+                <div class="attachment-btn">Upload Medical</div>
+            </div>
+             <div class="form-col">
+                <label>KYC Docs</label>
+                <div class="attachment-btn">Upload KYC</div>
+            </div>
+            <div class="form-col"></div>
+        </div>
+    </div>
+
+    <div style="width: 100%; margin-top: 25px;">
+        <div class="crm-card" style="text-align: center; padding: 15px;">
+            <button class="crm-button-primary" type="button" onclick="saveHealth()" style="min-width: 250px;">
+                💾 Save Health Policy
+            </button>
+            <div id="saveMessage" style="margin-top:10px; font-weight:bold;"></div>
+        </div>
+    </div>
+    
+    <div class="crm-card">
+        <h3>Recent Health Records</h3>
+        <div class="table-responsive">
+            <table class="crm-table" style="width:100%;">
+                <thead style="background:#f4f4f4;">
+                    <tr>
+                        <th>#</th>
+                        <th>Customer</th>
+                        <th>Policy No</th>
+                        <th>Product</th>
+                        <th>Ins. Co</th>
+                        <th>Premium</th>
+                        <th>Start Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="recentHealthTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* =================== CONFIG & API =================== */
+    // Use a relative path for the API base. This works for both local and production.
+    // Assumes frontend and backend are on the same domain.
+const API_BASE = "";
+const PARTNER_MASTER_API_URL = `${API_BASE}/api/master/partner`;
+const INSURANCE_CO_MASTER_API_URL = `${API_BASE}/api/master/item/insurancecompany`;
+const PAYMENT_MODE_MASTER_API_URL = `${API_BASE}/api/master/item/paymentmode`;
+const BANK_MASTER_API_URL = `${API_BASE}/api/master/bank`;
+const INSURANCE_YEAR_MASTER_API_URL = `${API_BASE}/api/master/item/insuranceyear`;
+const HEALTH_PRODUCT_API_URL = `${API_BASE}/api/master/item/healthproduct`; 
+// ✅ NEW API FOR DEALER PAYOUT LIST (Adjust endpoint as needed)
+const HEALTH_PAYOUT_API = `${API_BASE}/api/expenses/health/dealer/list`; 
+
+/* ✅ ABSOLUTE DATE FIX (Timezone Proof - Saving) */
+function getSafeDate(dateString) {
+    if (!dateString) return null;
+    const str = String(dateString).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
+    return str;
+}
+
+/* ✅ DISPLAY HELPER (String Only - Reading) */
+function getStandardDate(mongoDate) {
+    if (!mongoDate) return "";
+    let dateStr = (typeof mongoDate === 'object' && mongoDate.$date) ? mongoDate.$date : mongoDate;
+    if (typeof dateStr !== 'string') return "";
+    return dateStr.split("T")[0]; 
+}
+
+/* =================== TOAST NOTIFICATION =================== */
+function showToast(msg, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span>${msg}</span> <span style="margin-left:10px; cursor:pointer;" onclick="this.parentElement.remove()">✖</span>`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 5000);
+}
+
+/* =================== UTILS =================== */
+function el(id) { return document.getElementById(id); }
+function val(id) { var element = document.getElementById(id); return element ? element.value : ''; }
+
+/* =================== LOAD MASTERS =================== */
+async function fetchJson(url) {
+    try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } catch (err) { console.error(`Fetch failed: ${url}`, err); return null; }
+}
+
+async function loadSimpleMaster(url, elementId, keyName) {
+    const json = await fetchJson(url);
+    const list = (json && Array.isArray(json.data)) ? json.data.filter(x=>x.status==="Active").map(i=>i[keyName] || i.name).filter(Boolean) : [];
+    const element = el(elementId);
+    if(!element) return;
+    element.innerHTML = elementId.includes('Suggestions') ? '' : '<option value="">-- Select --</option>';
+    list.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; 
+        if(!elementId.includes('Suggestions')) opt.textContent = v;
+        element.appendChild(opt);
+    });
+}
+
+// ✅ FIXED HEALTH PRODUCT LOADER (Robust)
+async function loadHealthProducts() {
+    const element = document.getElementById('healthProduct');
+    if (!element) return;
+    try {
+        const res = await fetch(HEALTH_PRODUCT_API_URL, { cache: 'no-store' });
+        const json = await res.json();
+        let items = [];
+        if (Array.isArray(json)) { items = json; }
+        else if (json.data && Array.isArray(json.data)) { items = json.data; }
+        else if (json.products && Array.isArray(json.products)) { items = json.products; }
+
+        element.innerHTML = '<option value="">-- Select Product --</option>';
+        items.forEach(item => {
+            const rawStatus = item.status || item.Status || "Active"; 
+            if (rawStatus.toLowerCase() === 'active') {
+                const name = item.name || item.productName || item.label || item.value;
+                if (name) {
+                    const opt = document.createElement('option');
+                    opt.value = name; opt.textContent = name;
+                    element.appendChild(opt);
+                }
+            }
+        });
+    } catch (err) { console.error("Failed to load health products:", err); }
+}
+
+async function loadPartners() { loadSimpleMaster(PARTNER_MASTER_API_URL, 'partner', 'name'); }
+async function loadInsuranceCompanies() { 
+    loadSimpleMaster(INSURANCE_CO_MASTER_API_URL, 'insuranceCoSuggestions', 'companyName'); 
+    loadSimpleMaster(INSURANCE_CO_MASTER_API_URL, 'pypInsCo', 'companyName');
+}
+async function loadPaymentModes() { loadSimpleMaster(PAYMENT_MODE_MASTER_API_URL, 'paymentMode', 'mode'); }
+async function loadInsuranceYears() { loadSimpleMaster(INSURANCE_YEAR_MASTER_API_URL, 'insuranceYearSuggestions', 'year'); }
+
+async function loadBankNames() {
+    const json = await fetchJson(BANK_MASTER_API_URL);
+    const sel = el('bankName');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Select Bank --</option>';
+    let rows = (json && (Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []))) || [];
+    rows.filter(b => (b.status || '').toLowerCase() === 'active').forEach(b => {
+        const bankName = b.name || b.bankName || b.bank_name || b.label;
+        if (bankName) {
+            const opt = document.createElement("option");
+            opt.value = bankName; opt.textContent = bankName;
+            sel.appendChild(opt);
+        }
+    });
+}
+
+/* =================== 🚀 SMART DEALER LOGIC (NEW) =================== */
+const dealerInput = el('dealerName');
+const dealerBox = document.createElement('div');
+dealerBox.className = 'smart-suggestion-box';
+dealerInput.parentNode.appendChild(dealerBox);
+let cachedHealthDealers = [];
+
+// 1. Clear dealer if Product changes
+el('healthProduct').addEventListener('change', () => {
+    dealerInput.value = '';
+    el('insCompany').value = '';
+    dealerBox.style.display = 'none';
+});
+
+// 2. Trigger Dealer Refresh when Start Date changes
+el('startDate').addEventListener('change', (e) => {
+    // Auto-calculate End Date
+    const startVal = e.target.value;
+    if (startVal) {
+        const d = new Date(startVal);
+        d.setFullYear(d.getFullYear() + 1); 
+        d.setDate(d.getDate() - 1);         
+        el('endDate').value = d.toISOString().split('T')[0];
+    }
+    
+    // Refresh suggestions if box is active or text exists
+    if(dealerInput.value || dealerBox.style.display === 'block') {
+         renderDealerSuggestions(dealerInput.value);
+    }
+});
+
+dealerInput.addEventListener('focus', async () => {
+    const selectedProduct = val('healthProduct');
+    const riskDate = val('startDate');
+
+    if(!selectedProduct) {
+        showToast("⚠️ Please select a Health Product first", "warning");
+        dealerInput.blur();
+        return; 
+    }
+    
+    if(!riskDate) {
+        showToast("⚠️ Please select Start Date first", "warning");
+        dealerInput.blur();
+        return;
+    }
+
+    dealerBox.style.display = 'block';
+    
+    if(cachedHealthDealers.length === 0) {
+        dealerBox.innerHTML = '<div style="padding:10px;">Loading Dealers...</div>';
+        const res = await fetchJson(HEALTH_PAYOUT_API); 
+        cachedHealthDealers = res.data || [];
+    }
+    
+    renderDealerSuggestions(dealerInput.value);
+});
+
+dealerInput.addEventListener('input', (e) => {
+    dealerBox.style.display = 'block';
+    renderDealerSuggestions(e.target.value);
+});
+
+dealerInput.addEventListener('blur', () => setTimeout(() => dealerBox.style.display='none', 250));
+
+/* 🔥 CORE FILTERING LOGIC (Matching JSON Structure Provided) */
+function renderDealerSuggestions(filterText) {
+    const selectedProduct = val('healthProduct').trim().toLowerCase();
+    const riskDateVal = val('startDate');
+    const riskDateObj = riskDateVal ? new Date(riskDateVal) : null;
+
+    dealerBox.innerHTML = '';
+    let found = false;
+    
+    if (!riskDateObj) return;
+
+    // List to hold all matching candidates
+    let candidates = [];
+
+    cachedHealthDealers.forEach(record => {
+        // ✅ 1. Get Date from ROOT
+        let dateStr = record.date;
+        if (dateStr && typeof dateStr === 'object' && dateStr.$date) {
+            dateStr = dateStr.$date;
+        }
+        
+        if (!dateStr) return; 
+
+        const effDate = new Date(dateStr);
+
+        // ✅ 2. Filter by Date: Rule Date must be <= Risk Date
+        // We only want rules that have already started (Effective Date <= Policy Start)
+        if (effDate > riskDateObj) {
+             return; // Skipping future rule
+        }
+
+        const dealerName = record.dealerName || record.dealer;
+        const breakdownItems = record.breakdownItems || []; // ✅ Matches your JSON "breakdownItems"
+
+        // Check Rules inside this record
+        breakdownItems.forEach(item => {
+            const ruleProduct = (item.product || '').trim().toLowerCase();
+            
+            if (ruleProduct === selectedProduct) {
+                candidates.push({
+                    dealerName: dealerName,
+                    company: item.company, // ✅ Auto-fill Insurance Company
+                    effectiveDate: effDate,
+                    rawDate: dateStr
+                });
+            }
+        });
+    });
+
+    // ✅ 4. Sort Candidates by Date Descending (Newest First)
+    candidates.sort((a, b) => b.effectiveDate - a.effectiveDate);
+
+    // ✅ 5. Render Unique (Dealer + Company)
+    const uniqueSet = new Set();
+
+    candidates.forEach(item => {
+        // Search Filter
+        const isSearchMatch = item.dealerName.toLowerCase().includes(filterText.toLowerCase()) || 
+                              item.company.toLowerCase().includes(filterText.toLowerCase());
+
+        if (isSearchMatch) {
+            const key = `${item.dealerName}-${item.company}`;
+            
+            if (!uniqueSet.has(key)) {
+                uniqueSet.add(key);
+                found = true;
+
+                // Format Date (DD-MM-YY)
+                const d = item.effectiveDate;
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yy = String(d.getFullYear()).slice(-2);
+                const dateDisplay = `${dd}-${mm}-${yy}`;
+
+                const div = document.createElement('div');
+                div.className = 'smart-suggestion-item';
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; width:100%; align-items: center;">
+                        <div>
+                            <b>${item.dealerName}</b>
+                            <div style="font-size:10px; color:#666; margin-top:2px;">
+                                Eff: <span style="color:#d9534f; font-weight:600;">${dateDisplay}</span>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="color:#007bff; font-weight:500; background:#f0f8ff; padding: 2px 5px; border-radius: 4px; font-size:11px;">
+                                ${item.company}
+                            </span>
+                        </div>
+                    </div>`;
+                
+                div.onmousedown = () => {
+                    // ✅ AUTO FILL LOGIC
+                    el('dealerName').value = item.dealerName;
+                    el('insCompany').value = item.company; // Auto-fill Company
+                    
+                    dealerBox.style.display = 'none';
+                    showToast(`Dealer Linked: ${item.dealerName} (IC: ${item.company})`, "success");
+                };
+                dealerBox.appendChild(div);
+            }
+        }
+    });
+
+    if(!found) dealerBox.innerHTML = `<div class="no-record">No payout found for ${val('healthProduct')} on/before ${riskDateVal}</div>`;
+}
+
+/* =================== CUSTOMER POPUP & AUTOFILL =================== */
+function openCustomerPopup() {
+    window.open("universal-customer.html", "CustPopup", "width=480,height=650,left=100,top=80,resizable=no,scrollbars=yes,toolbar=no,menubar=no");
+}
+
+window.addEventListener("message", (e) => {
+    if (e.data && e.data.type === 'CUSTOMER_SAVED') {
+        const c = e.data.payload || {};
+        if(c._id || c.id) el('customerId').value = c._id || c.id;
+        el('sno').value = c.sno || '';
+        el('customerName').value = c.name || '';
+        el('customerMobile').value = c.mobile || '';
+        el('customerEmail').value = c.email || '';
+        el('address').value = c.address || '';
+        if (c.partner) {
+            const partnerSelect = el('partner');
+            let opt = Array.from(partnerSelect.options).find(o => o.value === c.partner || o.text === c.partner);
+            if (opt) partnerSelect.value = opt.value;
+        }
+        showToast("Customer Attached: " + c.name, "success");
+    }
+});
+
+/* =================== SEARCH & AUTO-FILL =================== */
+const searchInput = el('searchBox');
+const searchResults = el('searchList');
+
+searchInput.addEventListener('input', async (e) => {
+    const query = e.target.value.trim();
+    if (query.length < 2) { searchResults.innerHTML = ''; return; }
+    
+    try {
+        const res = await fetch(`${API_BASE}/api/gic/autocomplete?q=${query}`);
+        const data = await res.json();
+        searchResults.innerHTML = '';
+        
+        const head = document.createElement('div'); head.className = 'search-item si-header';
+        head.innerHTML = `<div>Policy No</div><div>Name</div><div style="text-align:center;">Mobile</div><div>Address</div><div>Action</div>`;
+        searchResults.appendChild(head);
+        
+        if (data.customers && data.customers.length > 0) {
+            data.customers.forEach(cust => {
+                const div = document.createElement('div'); div.className = 'search-item';
+                div.innerHTML = `<div class="si-val">--</div><div class="si-val"><b>${cust.name}</b></div><div class="si-val">${cust.mobile}</div><div class="si-val">${cust.address}</div><div class="si-val" style="color:green; font-weight:bold;">Select</div>`;
+                div.onclick = () => { 
+                    fillCustomerOnly(cust); 
+                    searchInput.value = cust.name; 
+                    searchResults.innerHTML = ''; 
+                };
+                searchResults.appendChild(div);
+            });
+        }
+        
+        if (searchResults.children.length === 1) { 
+            searchResults.innerHTML = '<div style="padding:10px; color:#999; text-align:center; font-size:12px;">No matching record found</div>';
+        }
+    } catch (err) { console.error("Search Error:", err); }
+});
+
+document.addEventListener('click', (e) => { if (e.target !== searchInput) searchResults.innerHTML = ''; });
+
+function fillCustomerOnly(cust) {
+    el('customerId').value = cust._id; el('sno').value = cust.sno || '';
+    el('customerName').value = cust.name || ''; el('customerMobile').value = cust.mobile || '';
+    el('customerEmail').value = cust.email || ''; el('address').value = cust.address || '';
+    showToast("Customer Selected", "info");
+}
+
+/* =================== DATE LOGIC & PREMIUM CALC =================== */
+function setupDateLogic() {
+    el('netPremium').addEventListener('input', (e) => {
+        const net = parseFloat(e.target.value) || 0;
+        const gst = (net * 0.18).toFixed(2);
+        el('gst').value = gst;
+        el('premium').value = (net + parseFloat(gst)).toFixed(0); 
+        el('premiumamt').value = (net + parseFloat(gst)).toFixed(0);
+    });
+}
+
+/* =================== FAMILY ROW LOGIC =================== */
+function addFamilyRow(data = {}) {
+    const tbody = document.getElementById('familyTableBody');
+    const rowId = 'row_' + Date.now();
+    const tr = document.createElement('tr');
+    tr.id = rowId;
+    tr.className = 'family-row';
+    
+    const nameVal = data.name || '';
+    const dobVal = data.dob ? getStandardDate(data.dob) : ''; 
+    const relVal = data.relation || '';
+
+    tr.innerHTML = `
+        <td style="padding: 5px;">
+            <input type="text" class="fam-name" value="${nameVal}" placeholder="Member Name" style="width:100%; padding:5px;">
+        </td>
+        <td style="padding: 5px;">
+            <input type="date" class="fam-dob" value="${dobVal}" style="width:100%; padding:5px;">
+        </td>
+        <td style="padding: 5px;">
+            <select class="fam-rel" style="width:100%; padding:5px;">
+                <option value="">Select</option>
+                <option value="Self" ${relVal === 'Self' ? 'selected' : ''}>Self</option>
+                <option value="Spouse" ${relVal === 'Spouse' ? 'selected' : ''}>Spouse</option>
+                <option value="Son" ${relVal === 'Son' ? 'selected' : ''}>Son</option>
+                <option value="Daughter" ${relVal === 'Daughter' ? 'selected' : ''}>Daughter</option>
+                <option value="Father" ${relVal === 'Father' ? 'selected' : ''}>Father</option>
+                <option value="Mother" ${relVal === 'Mother' ? 'selected' : ''}>Mother</option>
+                <option value="Other" ${relVal === 'Other' ? 'selected' : ''}>Other</option>
+            </select>
+        </td>
+        <td style="padding: 5px; text-align: center;">
+            <button type="button" onclick="removeFamilyRow('${rowId}')" style="background:none; border:none; color:red; cursor:pointer; font-size:18px;">&times;</button>
+        </td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function removeFamilyRow(rowId) {
+    const row = document.getElementById(rowId);
+    if(row) row.remove();
+}
+
+/* =================== RECENT HEALTH RECORDS =================== */
+async function loadRecentHealthRecords() {
+    const tbody = document.getElementById("recentHealthTableBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = `<tr><td colspan="9">Loading...</td></tr>`;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/health/recent`, { cache: "no-store" });
+        const json = await res.json();
+
+        if (!json.success || !json.data || json.data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9">No records found</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = "";
+
+        json.data.forEach((item, index) => {
+            const displayDate = item.startDate ? getStandardDate(item.startDate) : "";
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.customer?.name || ""}</td>
+                    <td>${item.policyNo || ""}</td>
+                    <td>${item.product || ""}</td>
+                    <td>${item.insCompany || ""}</td>
+                    <td>${item.premium || ""}</td>
+                    <td>${displayDate}</td>
+                    <td>${item.status || "Issued"}</td>
+                    <td>
+                        <button onclick="editHealth('${item._id}')" style="cursor:pointer; border:none; background:none; color:blue; font-size:16px;" title="Edit">✏️</button>
+                        <button onclick="deleteHealth('${item._id}')" style="cursor:pointer; border:none; background:none; color:red; font-size:16px;" title="Delete">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+    } catch (err) {
+        console.error("Recent Health Load Error:", err);
+        tbody.innerHTML = `<tr><td colspan="9" style="color:red;">Failed to load records</td></tr>`;
+    }
+}
+
+/* =================== SAVE / UPDATE LOGIC =================== */
+async function saveHealth() {
+    const btn = document.querySelector('button[onclick="saveHealth()"]');
+    if(btn) { btn.innerText = "⏳ Saving..."; btn.disabled = true; }
+
+    const familyRows = document.querySelectorAll('.family-row');
+    const familyData = [];
+    familyRows.forEach(row => {
+        const name = row.querySelector('.fam-name').value;
+        const dobStr = row.querySelector('.fam-dob').value;
+        const relation = row.querySelector('.fam-rel').value;
+        if(name) {
+            familyData.push({ name, dob: getSafeDate(dobStr), relation });
+        }
+    });
+
+    const data = {
+        customerId: val('customerId'),
+        customerName: val('customerName'),
+        partner: val('partner'),
+        product: val('healthProduct'),
+        policyNo: val('policyNo'),
+        endorsementNo: val('endorsementNo'),
+        policyType: val('policyType'),
+        insuranceYear: val('insuranceYear'),
+        
+        policyIssueDate: getSafeDate(val('policyIssueDate')),
+        issueDate: getSafeDate(val('policyIssueDate')),
+        startDate: getSafeDate(val('startDate')),
+        endDate: getSafeDate(val('endDate')),
+        
+        sumAssured: val('sumAssured'),
+        premium: val('premium'),
+        netPremium: val('netPremium'),
+        insCompany: val('insCompany'),
+        dealerName: val('dealerName'),
+        tpa: val('tpa'),
+        status: val('status'),
+        familyMembers: familyData,
+        
+        previousPolicyNo: val('previousPolicyNo'),
+        pypInsCo: val('pypInsCo'),
+        pypEndDate: getSafeDate(val('pypEndDate')),
+        
+        amountReceived: {
+            amount: val('premiumamt'),
+            date: getSafeDate(val('amountDate')),
+            paymentMode: val('paymentMode'),
+            chequeDd: val('chequeDd'),
+            bankName: val('bankName')
+        }
+    };
+
+    try {
+        if(!data.customerName) throw new Error("Customer Name is required");
+        if(!data.policyNo) throw new Error("Policy No is required");
+
+        const id = window.editHealthId;
+        const method = id ? "PUT" : "POST";
+        const url = id ? `${API_BASE}/api/health/${id}` : `${API_BASE}/api/health`;
+
+        const response = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        
+        if(!response.ok) throw new Error(result.message || "Failed to save");
+        
+        showToast(id ? "Policy Updated Successfully!" : "Policy Saved Successfully!", "success");
+        
+        window.editHealthId = null;
+        document.querySelectorAll('input:not(#searchBox), select').forEach(i => i.value = "");
+        document.getElementById('familyTableBody').innerHTML = '';
+        if(btn) btn.innerText = "💾 Save Health Policy";
+
+        loadRecentHealthRecords();
+        
+    } catch (err) {
+        showToast("Error: " + err.message, "error");
+        if(btn) btn.innerText = "⚠️ Error";
+    } finally {
+        setTimeout(() => { if(btn) { btn.innerText = "💾 Save Health Policy"; btn.disabled = false; } }, 3000);
+    }
+}
+
+/* =================== EDIT FUNCTION =================== */
+async function editHealth(id) {
+    try {
+        const res = await fetch(`${API_BASE}/api/health/${id}`);
+        if(!res.ok) throw new Error("Record not found");
+        
+        const d = await res.json();
+        window.editHealthId = d._id;
+
+        if(d.customer) {
+            document.getElementById("customerId").value = d.customer._id || d.customer;
+            document.getElementById("customerName").value = d.customer.name || d.customerName || "";
+        } else {
+             document.getElementById("customerName").value = d.customerName || "";
+        }
+
+        el("partner").value = d.partner || "";
+        el("healthProduct").value = d.product || ""; 
+        el("policyNo").value = d.policyNo || "";
+        el("endorsementNo").value = d.endorsementNo || "";
+        el("policyType").value = d.policyType || "Fresh";
+        el("insuranceYear").value = d.insuranceYear || "";
+        
+        if(d.policyIssueDate) el("policyIssueDate").value = getStandardDate(d.policyIssueDate);
+        if(d.startDate) el("startDate").value = getStandardDate(d.startDate);
+        if(d.endDate) el("endDate").value = getStandardDate(d.endDate);
+        if(d.pypEndDate) el("pypEndDate").value = getStandardDate(d.pypEndDate);
+        
+        el("sumAssured").value = d.sumAssured || "";
+        el("premium").value = d.premium || "";
+        el("netPremium").value = d.netPremium || "";
+        
+        el("dealerName").value = d.dealerName || "";
+        el("insCompany").value = d.insCompany || "";
+        el("tpa").value = d.tpa || "";
+        el("status").value = d.status || "Issued";
+
+        const tbody = document.getElementById('familyTableBody');
+        tbody.innerHTML = '';
+        if (d.familyMembers && Array.isArray(d.familyMembers)) {
+            d.familyMembers.forEach(member => addFamilyRow(member)); 
+        }
+
+        el("previousPolicyNo").value = d.previousPolicyNo || "";
+        el("pypInsCo").value = d.pypInsCo || "";
+        
+        if(d.amountReceived) {
+            el("premiumamt").value = d.amountReceived.amount || "";
+            if(d.amountReceived.date) el("amountDate").value = getStandardDate(d.amountReceived.date);
+            el("paymentMode").value = d.amountReceived.paymentMode || "";
+            el("chequeDd").value = d.amountReceived.chequeDd || "";
+            el("bankName").value = d.amountReceived.bankName || "";
+        }
+
+        const btn = document.querySelector('button[onclick="saveHealth()"]');
+        if(btn) btn.innerText = "✏️ Update Policy";
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        showToast("Edit mode enabled", "info");
+
+    } catch (err) {
+        console.error(err);
+        showToast("Failed to fetch record", "error");
+    }
+}
+
+/* =================== DELETE FUNCTION =================== */
+async function deleteHealth(id) {
+    if (!confirm("Are you sure you want to DELETE this record?")) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/health/${id}`, { method: "DELETE" });
+        if (res.ok) {
+            showToast("Record deleted", "success");
+            loadRecentHealthRecords(); 
+        } else {
+            const json = await res.json();
+            showToast("Delete failed: " + (json.message || "Error"), "error");
+        }
+    } catch (err) { showToast("Server error during delete", "error"); }
+}
+
+/* =================== INIT =================== */
+document.addEventListener('DOMContentLoaded', () => {
+    loadPartners();
+    loadInsuranceCompanies();
+    loadPaymentModes();
+    loadInsuranceYears();
+    loadBankNames();
+    loadHealthProducts();
+    setupDateLogic();
+    loadRecentHealthRecords(); 
+});
+</script>
+
+</body>
+</html>

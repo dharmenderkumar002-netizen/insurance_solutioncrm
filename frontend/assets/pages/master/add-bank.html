@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Add Bank</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f9;
+        padding: 20px;
+    }
+
+    h2 {
+        margin-bottom: 15px;
+    }
+
+    .form-box, .table-box {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        max-width: 900px;
+        margin-bottom: 25px;
+    }
+
+    label {
+        display: block;
+        margin: 10px 0 6px;
+        font-weight: bold;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        margin-bottom: 12px;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        background: #013859;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        text-align: center;
+    }
+
+    .edit-btn { background:#4CAF50; color:white; }
+    .delete-btn { background:#d9534f; color:white; }
+</style>
+</head>
+
+<body>
+
+<h2>Add Bank</h2>
+
+<div class="form-box">
+    <label>S.No *</label>
+    <input type="text" id="sno" readonly>
+
+    <label>Add Bank *</label>
+    <input type="text" id="bankName" required>
+
+    <label>Status *</label>
+    <select id="status">
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+    </select>
+
+    <label>Date</label>
+    <input type="text" id="date" readonly>
+
+    <button class="btn" onclick="saveBank()">Save</button>
+    <button class="btn" style="background:#ff9800;" onclick="resetForm()">Add New</button>
+</div>
+
+<div class="table-box">
+    <h3>Bank Records</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>S.No</th>
+                <th>Bank Name</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="bankTable"></tbody>
+    </table>
+</div>
+
+<script>
+let editId = null;
+
+// AUTO DATE
+function loadDate() {
+    document.getElementById("date").value =
+        new Date().toISOString().split("T")[0];
+}
+
+// RESET FORM
+function resetForm() {
+    editId = null;
+    document.getElementById("bankName").value = "";
+    document.getElementById("status").value = "Active";
+    loadDate();
+    loadSno();
+}
+
+// LOAD NEXT SNO
+async function loadSno() {
+    const res = await fetch("/api/master/bank");
+    const data = await res.json();
+    document.getElementById("sno").value = (data.data.length + 1);
+}
+
+// SAVE TO DATABASE
+async function saveBank() {
+    const bank_name = document.getElementById("bankName").value.trim();
+    const status = document.getElementById("status").value;
+    const date = document.getElementById("date").value;
+    const s_no = document.getElementById("sno").value;
+
+    if (!bank_name) {
+        alert("Bank name is required.");
+        return;
+    }
+
+    const payload = { s_no, bank_name, status, date };
+
+    let url = "/api/master/bank";
+    let method = "POST";
+
+    if (editId) {
+        url = `/api/master/bank/${editId}`;
+        method = "PUT";
+    }
+
+    const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+        loadBanks();
+        resetForm();
+    } else {
+        alert("Error: " + result.message);
+    }
+}
+
+// LOAD DATA FROM DB
+async function loadBanks() {
+    const res = await fetch("/api/master/bank");
+    const result = await res.json();
+
+    const table = document.getElementById("bankTable");
+    table.innerHTML = "";
+
+    result.data.forEach(item => {
+        table.innerHTML += `
+            <tr>
+                <td>${item.s_no}</td>
+                <td>${item.bank_name}</td>
+                <td>${item.status}</td>
+                <td>${item.date}</td>
+                <td>
+                    <button class="edit-btn" onclick="editBank('${item._id}', '${item.bank_name}', '${item.status}', '${item.date}', '${item.s_no}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteBank('${item._id}')">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// EDIT DATA
+function editBank(id, name, status, date, sno) {
+    editId = id;
+    document.getElementById("bankName").value = name;
+    document.getElementById("status").value = status;
+    document.getElementById("date").value = date;
+    document.getElementById("sno").value = sno;
+}
+
+// DELETE RECORD
+async function deleteBank(id) {
+    if (!confirm("Delete this record?")) return;
+
+    await fetch(`/api/master/bank/${id}`, { method: "DELETE" });
+    loadBanks();
+    loadSno();
+}
+
+// PAGE INIT
+loadDate();
+loadSno();
+loadBanks();
+</script>
+
+<!-- Security Check -->
+<script src="../../js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+ <style>
+        /* --- CRM Color Palette & Base Styles --- */
+        :root {
+            --primary-dark: #013859; /* Dark Blue */
+            --primary-light: #005a96;
+            --accent-orange: #ff9800; /* Orange - Accent Color */
+            --background-body: #f4f7f9; /* Light Gray Background */
+            --card-bg: #ffffff;
+            --text-color-dark: #333;
+            --border-color: #e0e0e0;
+            --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background: var(--background-body);
+            color: var(--text-color-dark);
+        }
+        
+        /* --- Layout and Structure (Matching GIC) --- */
+        .page-content {
+            padding: 20px 30px;
+        }
+        h2 {
+            color: var(--primary-dark);
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            border-left: 5px solid var(--accent-orange);
+            padding-left: 15px;
+        }
+        
+        /* --- Card/Section Styling (Matching GIC) --- */
+        .crm-card { /* Renamed table-box for consistency */
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .crm-card h3 {
+            color: var(--primary-dark);
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .crm-card h3::before {
+            content: "•";
+            color: var(--accent-orange);
+            font-size: 24px;
+            margin-right: 10px;
+            line-height: 1;
+        }
+
+        /* --- Form Elements --- */
+        .form-row {
+            display: flex;
+            gap: 25px; 
+            margin-bottom: 10px;
+        }
+        .form-col {
+            flex: 1;
+            min-width: 0; 
+        }
+        label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            display: block;
+            margin-bottom: 5px;
+            margin-top: 10px; 
+        }
+        input:not([type="file"]), select {
+            width: 100%;
+            padding: 10px 12px;
+            margin: 0 0 12px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 14px;
+            background: #fafafa;
+            transition: all 0.2s;
+            box-sizing: border-box; 
+        }
+        input:focus, select:focus {
+            border-color: var(--primary-dark); 
+            box-shadow: 0 0 0 2px rgba(1, 56, 89, 0.1);
+            background: var(--card-bg);
+            outline: none;
+        }
+
+        /* Multi-Select Height Fix */
+        #licPlan {
+            height: 90px !important;
+        }
+
+        /* --- Buttons (Matching GIC) --- */
+        .crm-button-primary {
+            background: var(--primary-dark);
+            color: white;
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 600;
+        }
+        .crm-button-primary:hover {
+            background: var(--primary-light); 
+        }
+        .crm-button-accent {
+            background: var(--accent-orange);
+            color: white;
+            padding: 10px 18px;
+            font-size: 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-weight: 500;
+        }
+        .crm-button-accent:hover {
+            background: #e58900; 
+        }
+
+        /* Special buttons */
+        .small-btn { 
+            padding: 10px 18px; 
+            font-size: 14px; 
+            border-radius: 5px; 
+            background: var(--accent-orange); 
+            margin-bottom: 12px;
+        }
+        button[onclick="saveLIC()"] {
+            background: var(--primary-dark); 
+            width: 200px;
+        }
+        button[onclick="saveLIC()"]:hover {
+            background: var(--primary-light); 
+        }
+        
+        /* --- Search Suggestion Box (Matching GIC) --- */
+        #licSearchList {
+            position:absolute; z-index:80; background:white;
+            border:1px solid var(--primary-dark); width:300px;
+            max-height:220px; overflow:auto; display:none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        #licSearchList div {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        #licSearchList div:hover {
+            background: var(--background-body);
+            color: var(--primary-dark);
+        }
+        
+        /* --- Attachment Button (Matching GIC) --- */
+        .attachment-btn {
+            padding: 10px;
+            background: #6c757d;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            transition: background 0.2s;
+            margin-bottom: 12px;
+            box-sizing: border-box; 
+        }
+        .attachment-btn:hover {
+            background: #5a6268;
+        }
+
+        /* --- Table Styling (Matching GIC) --- */
+        #licTable, .family-table table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #licTable th, #licTable td, .family-table th, .family-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            font-size: 14px;
+        }
+        #licTable thead th, .family-table thead th {
+            background-color: var(--primary-dark);
+            color: white;
+            font-weight: 600;
+            border-bottom: none;
+            text-transform: uppercase;
+        }
+        .family-table input { 
+            width: 100%; 
+            box-sizing: border-box; 
+            padding: 6px 8px;
+            margin: 0;
+            background: #fff;
+        }
+    </style>

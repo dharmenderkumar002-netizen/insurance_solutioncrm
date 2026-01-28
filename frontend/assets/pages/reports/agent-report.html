@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent Reports</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #efefef; }
+  </style>
+</head>
+<body>
+
+<h2>Agent Reports</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Agent Name</th>
+      <th>Total Policies</th>
+      <th>Total Premium</th>
+      <th>Total Commission</th>
+    </tr>
+  </thead>
+  <tbody id="reportList"></tbody>
+</table>
+
+<script>
+async function loadReports() {
+  const res = await fetch("/api/reports/agent");
+  const data = await res.json();
+
+  const tbody = document.getElementById("reportList");
+  tbody.innerHTML = "";
+
+  data.data.forEach(r => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.name}</td>
+        <td>${r.totalPolicies}</td>
+        <td>${r.totalPremium}</td>
+        <td>${r.totalCommission}</td>
+      </tr>
+    `;
+  });
+}
+
+loadReports();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    // Redirect to main layout if not in an iframe.
+    // This prevents direct access to the page.
+    if (window.self === window.top) {
+        // The path to layout.html from this page.
+        window.location.href = '../../layout.html';
+    }
+</script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Dealer (Non-Motor) Commission Report</title>
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; padding: 15px; margin: 0; }
+        .report-header { background: #fff; padding: 10px 15px; border-left: 4px solid #605ca8; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .report-header h2 { font-size: 18px; margin: 0; color: #333; font-weight: 500; }
+        
+        .status-bar { background: #605ca8; color: white; padding: 8px 15px; font-size: 13px; margin-bottom: 15px; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; }
+
+        .filter-section { background: #fff; padding: 15px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .filter-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+        .filter-item { flex: 1; min-width: 200px; }
+        .filter-item label { display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 5px; }
+        
+        .input-custom { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 2px; font-size: 13px; box-sizing: border-box; }
+
+        .btn-go { background: #337ab7; color: white; border: none; padding: 7px 15px; border-radius: 3px; cursor: pointer; font-weight: 500; }
+        .btn-export { background: #00a65a; color: white; border: none; padding: 7px 15px; border-radius: 3px; cursor: pointer; font-weight: 500; }
+
+        .table-container { background: white; padding: 10px; border-radius: 4px; overflow-x: auto; border: 1px solid #ddd; height: 65vh; }
+        .report-table { width: 100%; border-collapse: collapse; min-width: 1600px; }
+        .report-table th { background: #f8f9fa; color: #333; font-size: 11px; font-weight: 700; padding: 8px; border: 1px solid #ddd; text-align: left; position: sticky; top: 0; z-index: 10; }
+        .report-table td { padding: 8px; border: 1px solid #ddd; font-size: 11px; color: #444; white-space: nowrap; }
+        
+        .footer-summary { background: #fff; padding: 10px; margin-top: 15px; border: 1px solid #ddd; font-weight: 700; color: #333; display: flex; justify-content: flex-end; font-size: 15px; }
+        .badge { padding: 3px 8px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+        .badge-nm { background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
+        
+        #lastUpdated { font-style: italic; font-size: 11px; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="report-header">
+    <h2><i class="fas fa-ship"></i> Dealer (Non-Motor) Commission Report</h2>
+    <div id="lastUpdated">Last sync: Never</div>
+</div>
+
+<div class="status-bar">
+    <span><i class="fas fa-calculator"></i> Processing Non-Motor Commission Payouts</span>
+    <span>Next Refresh in: <span id="timerText">30</span>s</span>
+</div>
+
+<div class="filter-section">
+    <div class="filter-grid">
+        <div class="filter-item">
+            <label>Dealer(s) *</label>
+            <select id="f_dealer" class="js-select2" multiple="multiple" style="width: 100%"></select>
+        </div>
+        <div class="filter-item">
+            <label>Insurance Company</label>
+            <select id="f_company" class="js-select2" multiple="multiple" style="width: 100%"></select>
+        </div>
+        <div class="filter-item">
+            <label>Quick Search</label>
+            <input type="text" id="f_search" class="input-custom" placeholder="Policy / Customer / Product">
+        </div>
+        <div class="filter-item" style="max-width: 150px;">
+            <label>From Date</label>
+            <input type="date" id="f_from" class="input-custom">
+        </div>
+        <div class="filter-item" style="max-width: 150px;">
+            <label>To Date</label>
+            <input type="date" id="f_to" class="input-custom">
+        </div>
+        <div style="display: flex; gap: 5px;">
+            <button class="btn-go" onclick="handleManualGo()"><i class="fas fa-play"></i> GO</button>
+            <button class="btn-export" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Export</button>
+        </div>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="report-table" id="reportTable">
+        <thead>
+            <tr>
+                <th>S.No.</th>
+                <th>Dealer Name</th>
+                <th>Policy Date</th>
+                <th>Policy No</th>
+                <th>Customer Name</th>
+                <th>Product</th>
+                <th>Insurance Co</th>
+                <th>Policy Type</th>
+                <th>Sum Assured</th>
+                <th>Net Premium</th>
+                <th>Terrorism Prem</th>
+                <th>Payout %</th>
+                <th>Fixed</th>
+                <th style="background: #f3e5f5;">Comm Amount</th>
+                <th>Status</th>
+                <th>Entry Date</th>
+            </tr>
+        </thead>
+        <tbody id="reportTbody">
+            <tr><td colspan="16" style="text-align:center; padding: 30px; color: #888;">Select filters and click GO.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="footer-summary">
+    Grand Total Commission: ₹ <span id="totalComm" style="color: #605ca8; margin-left: 10px;">0.00</span>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+<script>
+    // Use a relative path for the API base. This works for both local and production.
+    // Assumes frontend and backend are on the same domain.
+    const API_BASE = "";
+    let refreshTimer = 30;
+    let timerId = null;
+
+    $(document).ready(function() {
+        $('.js-select2').select2({ placeholder: "All", allowClear: true });
+        loadFilters();
+        startCountdown();
+    });
+
+    async function loadFilters() {
+        try {
+            const [dRes, cRes] = await Promise.all([
+                fetch(`${API_BASE}/api/master/dealer`).then(r => r.json()),
+                fetch(`${API_BASE}/api/master/item/insurancecompany`).then(r => r.json())
+            ]);
+            dRes.data.forEach(d => $('#f_dealer').append(new Option(d.name, d.name)));
+            cRes.data.forEach(c => $('#f_company').append(new Option(c.name, c.name)));
+        } catch (err) { console.error("Filter Load Error", err); }
+    }
+
+    function handleManualGo() {
+        refreshTimer = 30; 
+        generateReport(false);
+    }
+
+    async function generateReport(isSilent = false) {
+        const dealers = $('#f_dealer').val();
+        if (!dealers || dealers.length === 0) return;
+
+        const tbody = document.getElementById('reportTbody');
+        if (!isSilent) tbody.innerHTML = `<tr><td colspan="16" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Processing...</td></tr>`;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/expenses/report/nonmotor`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dealers,
+                    companies: $('#f_company').val(),
+                    fromDate: $('#f_from').val(),
+                    toDate: $('#f_to').val(),
+                    search: $('#f_search').val()
+                })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                window.reportData = result.data;
+                renderTable(result.data);
+                document.getElementById('lastUpdated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
+            }
+        } catch (err) { console.error(err); }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('reportTbody');
+        tbody.innerHTML = "";
+        let grandTotal = 0;
+
+        data.forEach((item, index) => {
+            const commAmt = parseFloat(item.commAmt) || 0;
+            grandTotal += commAmt;
+            tbody.innerHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td style="font-weight: 600;">${item.dealerName}</td>
+                    <td>${new Date(item.policyDate).toLocaleDateString('en-GB')}</td>
+                    <td>${item.policyNo || '-'}</td>
+                    <td>${item.customerName || '-'}</td>
+                    <td>${item.product || '-'}</td>
+                    <td>${item.insCompany || '-'}</td>
+                    <td>${item.policyType || '-'}</td>
+                    <td>₹${(item.sumAssured || 0).toLocaleString()}</td>
+                    <td>₹${(item.netPremium || 0).toLocaleString()}</td>
+                    <td>₹${(item.terrorismPremium || 0).toLocaleString()}</td>
+                    <td style="color: blue; font-weight:bold;">${item.commPercent}%</td>
+                    <td>₹${(item.fixed || 0)}</td>
+                    <td style="background: #f3e5f5; font-weight: bold; color: #7b1fa2;">₹${commAmt.toFixed(2)}</td>
+                    <td><span class="badge badge-nm">DONE</span></td>
+                    <td>${item.entryDate ? new Date(item.entryDate).toLocaleDateString('en-GB') : '-'}</td>
+                </tr>`;
+        });
+        document.getElementById('totalComm').innerText = grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    }
+
+    function startCountdown() {
+        timerId = setInterval(() => {
+            refreshTimer--;
+            if(refreshTimer <= 0) {
+                generateReport(true);
+                refreshTimer = 30;
+            }
+            document.getElementById('timerText').innerText = refreshTimer;
+        }, 1000);
+    }
+
+    function exportToExcel() {
+        if (!window.reportData || window.reportData.length === 0) return alert("No data to export");
+
+        const rows = [
+            ["INSURANCE SOLUTION"],
+            ["DEALER NON-MOTOR COMMISSION REPORT"],
+            [`Date: ${new Date().toLocaleDateString('en-GB')}`],
+            ["S.No", "Dealer", "Date", "Policy No", "Customer", "Product", "Company", "Net Premium", "Terrorism", "Payout %", "Fixed", "Comm Amount"]
+        ];
+
+        window.reportData.forEach((item, index) => {
+            rows.push([
+                index + 1,
+                item.dealerName,
+                item.policyDate.split('T')[0],
+                item.policyNo,
+                item.customerName,
+                item.product,
+                item.insCompany,
+                item.netPremium,
+                item.terrorismPremium,
+                item.commPercent,
+                item.fixed,
+                item.commAmt
+            ]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Non-Motor Report");
+        XLSX.writeFile(wb, `NonMotor_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+</script>
+</body>
+</html>

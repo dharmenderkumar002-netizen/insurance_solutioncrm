@@ -1,0 +1,200 @@
+/* ============================================================
+   CRM MAIN.CSS — FINAL OPTIMIZED + PROFESSIONAL + COMPACT
+   ============================================================ */
+
+/* ---------- COLORS ---------- */
+:root {
+    --primary-dark: #013859;
+    --primary-light: #005a96;
+    --accent-orange: #ff9800;
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --muted: #6b7280;
+    --border: #d3d3d3;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* ---------- BODY ---------- */
+body {
+    margin: 0;
+    font-family: "Inter", Arial, sans-serif;
+    background: var(--bg);
+}
+
+/* ============================================================
+   PAGE FRAME — CENTER CONTENT
+   ============================================================ */
+
+.page-content {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 30px;
+    box-sizing: border-box;
+}
+
+/* ============================================================
+   CRM CARDS
+   ============================================================ */
+
+.crm-card {
+    background: var(--card);
+    width: 100%;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    box-shadow: var(--shadow);
+}
+
+h2 {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--primary-dark);
+}
+
+h3 {
+    margin: 0 0 10px;
+    padding-bottom: 6px;
+    font-size: 15px;
+    border-bottom: 1px solid #ddd;
+    color: var(--primary-dark);
+}
+
+/* ============================================================
+   FORM ELEMENTS — COMPACT
+   ============================================================ */
+
+label {
+    font-size: 12px;
+    margin-bottom: 3px;
+    font-weight: 600;
+    color: var(--muted);
+    display: block;
+}
+
+/* Compact Inputs */
+input:not([type=radio]),
+select,
+textarea {
+    width: 100%;
+    height: 26px;
+    padding: 2px 6px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    box-sizing: border-box;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 2px rgba(0,90,150,0.15);
+}
+
+/* RADIO FIX */
+input[type=radio] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+/* ============================================================
+   UNIVERSAL DYNAMIC GRID — MINIMUM 6 COLUMNS
+   ============================================================ */
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(160px, 1fr));
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.form-col {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* COLUMN SPANS */
+.col-100 { grid-column: span 6; }
+.col-50  { grid-column: span 3; }
+.col-40  { grid-column: span 3; }
+.col-33  { grid-column: span 2; }
+.col-30  { grid-column: span 2; }
+.col-25  { grid-column: span 2; }
+
+/* FIXED WIDTH */
+.col-fixed-85 { grid-column: span 1; max-width: 85px; }
+.col-fixed-50 { grid-column: span 1; max-width: 50px; }
+
+/* RESPONSIVE GRID */
+@media (max-width: 1200px) {
+    .form-row { grid-template-columns: repeat(4, minmax(150px, 1fr)); }
+}
+
+@media (max-width: 900px) {
+    .form-row { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+}
+
+@media (max-width: 600px) {
+    .form-row { grid-template-columns: repeat(1, 1fr); }
+}
+
+/* ============================================================
+3. RADIO BUTTON GROUP FIX (CAR, BIKE, etc.) */
+.radio-grid-container { 
+    padding: 4px !important; 
+    display: flex !important; 
+    flex-wrap: wrap !important;
+    gap: 15px 3px !important; 
+    align-items: center !important;
+    justify-content: flex-start !important;
+}
+.radio-grid-container label { 
+    width: fit-content !important;
+    display: flex !important;         
+    align-items: center !important;  
+    gap: 3px !important; 
+    padding: 3px 0 !important; 
+}
+
+/* 4. GRID CLASSES for professional alignment */
+.col-16 { flex: 1 1 calc(16.66% - 8px); } 
+.col-33 { flex: 1 1 calc(33.33% - 8px); } 
+.col-30 { flex: 1 1 calc(30% - 8px); } 
+
+.col-fixed-85 { flex: 0 0 85px; max-width: 85px; } 
+.col-fixed-50 { flex: 0 0 50px; max-width: 50px; } 
+
+
+/* FIX: New class to replace inline style for save button container */
+.save-button-container {
+    text-align: center;
+}
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.crm-button-primary {
+    background: var(--primary-dark);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.crm-button-accent {
+    background: var(--accent-orange);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+}

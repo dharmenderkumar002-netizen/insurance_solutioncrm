@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Partner Expense Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; padding: 20px; margin: 0; }
+        
+        /* --- MAIN CARD --- */
+        .crm-card { background: #fff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; border-top: 3px solid transparent; }
+        
+        /* --- HEADER & CONTROLS --- */
+        h2 { font-size: 20px; font-weight: 500; color: #444; margin: 0 0 20px 0; }
+        
+        .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .left-controls { display: flex; gap: 10px; }
+        
+        .form-select {
+            padding: 6px 12px; font-size: 14px; border: 1px solid #ced4da; border-radius: 4px; color: #495057; background-color: #fff; outline: none;
+        }
+        .form-select:focus { border-color: #80bdff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
+        
+        .search-box input {
+            padding: 6px 12px; font-size: 14px; border: 1px solid #ced4da; border-radius: 4px; width: 200px; outline: none;
+        }
+        .search-box input:focus { border-color: #80bdff; }
+
+        /* --- TABLE --- */
+        .table-responsive { overflow-x: auto; }
+        .crm-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+        
+        .crm-table thead th { 
+            background-color: #fff; border-bottom: 2px solid #dee2e6; border-top: 1px solid #dee2e6;
+            color: #333; font-weight: 700; font-size: 12px; text-transform: uppercase;
+            padding: 12px; text-align: left; vertical-align: bottom; white-space: nowrap;
+        }
+        
+        .crm-table tbody td { 
+            padding: 12px; border-bottom: 1px solid #dee2e6; color: #333; 
+            font-size: 14px; vertical-align: middle; 
+        }
+        .crm-table tbody tr:hover { background-color: #f8f9fa; }
+
+        /* --- ICONS --- */
+        .icon-pair { display: flex; gap: 8px; align-items: center; }
+        .icon-main { font-size: 15px; cursor: pointer; transition: 0.2s; }
+        .icon-chart { font-size: 15px; color: #337ab7; cursor: pointer; transition: 0.2s; } 
+        
+        .icon-main:hover, .icon-chart:hover { opacity: 0.7; }
+
+        .gic-color { color: #337ab7; }      /* Blue Car */
+        .health-color { color: #00a65a; }   /* Green Heart */
+        .nonmotor-color { color: #605ca8; } /* Purple Ship */
+        .lic-color { color: #f39c12; }      /* Orange Umbrella */
+
+        /* --- STATUS BADGE --- */
+        .badge-active {
+            background-color: #dff0d8; color: #3c763d; border: 1px solid #d6e9c6;
+            padding: 2px 8px; font-size: 11px; font-weight: 600; border-radius: 3px;
+        }
+        .badge-inactive {
+            background-color: #f2dede; color: #a94442; border: 1px solid #ebccd1;
+            padding: 2px 8px; font-size: 11px; font-weight: 600; border-radius: 3px;
+        }
+
+        /* --- PAGINATION --- */
+        .pagination-row { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 13px; color: #777; }
+        .btn-page {
+            padding: 5px 10px; border: 1px solid #ddd; background: #fff; color: #333; cursor: pointer; border-radius: 3px; font-size: 13px; margin-left: -1px;
+        }
+        .btn-page:hover { background-color: #eee; }
+
+        /* --- COMMISSION SECTION STYLES --- */
+        #commissionSection { display: none; margin-top: 20px; }
+        .comm-header { display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center; }
+        .btn-back { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .tab-wrapper { border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #fff; }
+        
+        .header-GIC { border-top: 3px solid #337ab7; }
+        .header-HEALTH { border-top: 3px solid #00a65a; }
+        .header-NONMOTOR { border-top: 3px solid #605ca8; }
+        .header-LIC { border-top: 3px solid #f39c12; }
+        
+        /* Edit Button Style */
+        .btn-edit-rules { 
+            background: #fff; border: 1px solid #337ab7; color: #337ab7; 
+            padding: 6px 15px; border-radius: 4px; cursor: pointer; 
+            font-size: 13px; font-weight: 500; transition: 0.2s;
+        }
+        .btn-edit-rules:hover { background: #337ab7; color: #fff; }
+
+        /* Toast */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        .toast { background: #333; color: white; padding: 12px 20px; margin-bottom: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="page-content">
+    
+    <div id="partnerListSection">
+        <h2>Partner Expense Management</h2>
+        
+        <div class="crm-card">
+            <div class="top-controls">
+                <div class="left-controls">
+                    <select id="rowsPerPage" onchange="renderEntityTable()" class="form-select">
+                        <option value="10">10 records</option>
+                        <option value="25">25 records</option>
+                        <option value="50">50 records</option>
+                    </select>
+                </div>
+                
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search Partner..." onkeyup="filterEntities()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="crm-table">
+                    <thead>
+                        <tr>
+                            <th width="5%">S.NO.</th>
+                            <th width="8%">GIC</th>
+                            <th width="8%">HEALTH</th>
+                            <th width="8%">NONMOTOR</th>
+                            <th width="8%">LIC</th>
+                            <th>PARTNER NAME</th>
+                            <th>EMAIL</th>
+                            <th>MOBILE</th>
+                            <th>STATUS</th>
+                            <th>DATE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partnerTableBody">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-row">
+                <div id="showingInfo">Showing 0 to 0 of 0</div>
+                <div>
+                    <button class="btn-page" onclick="changePage(-1)">Prev</button>
+                    <button class="btn-page" onclick="changePage(1)">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="commissionSection">
+        <div class="crm-card" id="commCard">
+            <div class="comm-header">
+                <div>
+                    <h3 id="commissionHeader" style="margin:0; font-size:18px; color:#333;">Manage Commission</h3>
+                    <small id="subHeaderBadge" style="color:#777;"></small>
+                </div>
+                <button class="btn-back" onclick="hideCommission()">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </button>
+            </div>
+            
+            <div class="tab-wrapper">
+                <h4 id="currentTabTitle" style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px; display:flex; justify-content:space-between;">
+                    <span>Payout Entries</span>
+                    <span style="font-size:12px; font-weight:400; color:#666; background:#f0f0f0; padding:2px 8px; border-radius:4px;">
+                        <i class="fas fa-sync-alt"></i> Synced with Dealer
+                    </span>
+                </h4>
+                
+                <table class="crm-table">
+                    <thead>
+                        <tr>
+                            <th width="50">S.No.</th>
+                            <th>Commission Effective Date</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesBody">
+                        </tbody>
+                </table>
+                <div id="commShowingText" style="text-align:center; padding:20px; color:#999; font-style:italic;">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// --- CONFIGURATION ---
+const API_BASE = "http://localhost:4000"; 
+let allEntities = []; 
+let currentPage = 1;
+let rowsPerPage = 10;
+
+// State
+let currentEntityId = null;
+let currentEntityName = "";
+let currentType = 'GIC'; 
+
+// TYPE CONFIG: Uses Dealer API to fetch dates (Mirroring)
+const TYPE_CONFIG = {
+    'GIC': { 
+        color: '#337ab7', headerClass: 'header-GIC', 
+        listApi: '/api/expenses/dealer/list', 
+        breakdownPage: 'partner-gic-commission-breakdown.html', 
+        reportPage: 'partner-gic-commission-report.html' 
+    },
+    'HEALTH': { 
+        color: '#00a65a', headerClass: 'header-HEALTH', 
+        listApi: '/api/expenses/health/dealer/list', 
+        breakdownPage: 'partner-health-commission-breakdown.html', 
+        reportPage: 'partner-health-commission-report.html' 
+    },
+    'NONMOTOR': { 
+        color: '#605ca8', headerClass: 'header-NONMOTOR', 
+        listApi: '/api/expenses/nonmotor/dealer/list', 
+        breakdownPage: 'partner-nonmotor-commission-breakdown.html', 
+        reportPage: 'partner-nonmotor-commission-report.html' 
+    },
+    'LIC': { 
+        color: '#f39c12', headerClass: 'header-LIC', 
+        listApi: '/api/expenses/lic/dealer/list', 
+        breakdownPage: 'partner-lic-commission-breakdown.html', 
+        reportPage: 'partner-lic-commission-report.html' 
+    }
+};
+// --- UTILS ---
+function showToast(msg, type='success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<i class="fas ${type==='error'?'fa-times-circle':'fa-check-circle'}"></i> ${msg}`;
+    toast.style.backgroundColor = type === 'error' ? '#d9534f' : '#333';
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function formatDisplayDate(dateStr) {
+    if (!dateStr) return "--";
+    
+    // 1. Clean string: remove time if present (e.g. "2026-01-13T00:00:00" -> "2026-01-13")
+    let str = String(dateStr).split("T")[0].trim();
+    
+    // 2. Handle Standard ISO Format (YYYY-MM-DD) -> Convert to DD-MM-YYYY
+    if (str.includes("-")) {
+        const parts = str.split("-");
+        if (parts[0].length === 4) {
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+    }
+    
+    // 3. Handle Compact Format (e.g. "13012026" seen in your screenshot)
+    // We assume the format is DDMMYYYY based on your image data
+    if (str.length === 8 && !isNaN(str)) {
+        const d = str.substring(0, 2);
+        const m = str.substring(2, 4);
+        const y = str.substring(4, 8);
+        return `${d}-${m}-${y}`;
+    }
+
+    return str;
+}
+function normalizeDateForLink(dateStr) {
+    let str = String(dateStr).trim();
+    if (str.includes("T")) str = str.split("T")[0];
+    return str.replace(/-/g, "");
+}
+
+// --- 1. FETCH PARTNERS ---
+async function fetchEntities() {
+    try {
+        const res = await fetch(`${API_BASE}/api/master/partner`);
+        const json = await res.json();
+        allEntities = json.data || json;
+        currentPage = 1;
+        renderEntityTable();
+    } catch (err) { console.error(err); showToast("Error loading partners", "error"); }
+}
+
+function renderEntityTable() {
+    const tbody = document.getElementById('partnerTableBody');
+    const searchVal = document.getElementById('searchInput').value.toLowerCase();
+    rowsPerPage = parseInt(document.getElementById('rowsPerPage').value);
+    
+    // Filter: Name matches AND Status is Active
+    const filtered = allEntities.filter(p => {
+        const nameMatch = (p.name || p.partnername || '').toLowerCase().includes(searchVal);
+        const status = (p.status || '').trim();
+        const isActive = status.toLowerCase() === 'active';
+        return nameMatch && isActive;
+    });
+
+    const startIdx = (currentPage - 1) * rowsPerPage;
+    const pageData = filtered.slice(startIdx, startIdx + rowsPerPage);
+
+    tbody.innerHTML = '';
+    
+    if(pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px; color:#999;">No active partners found</td></tr>`;
+        document.getElementById('showingInfo').innerText = "Showing 0 to 0 of 0";
+        return;
+    }
+
+    pageData.forEach((item, index) => {
+        const id = item._id || item.id;
+        const name = item.name || item.partnername || '-';
+        const email = item.email || '-';
+        const mobile = item.mobile || '-';
+        const status = item.status || 'Active';
+        const partnerDate = item.date || '-'; // Fetched from Partner Record
+        const safeName = name.replace(/'/g, "\'");
+        
+        const sno = startIdx + index + 1;
+        
+        // Helper to generate the Icon Pair
+        const renderIcons = (type, iconClass, colorClass) => `
+            <div class="icon-pair">
+                <i class="fas ${iconClass} icon-main ${colorClass}" 
+                   title="Set Partner ${type} Expenses" 
+                   onclick="openExpenseManager('${id}', '${safeName}', '${type}')"></i>
+                <i class="fas fa-chart-line icon-chart" 
+                   title="View ${type} Report" 
+                   onclick="openReport('${id}', '${safeName}', '${type}')"></i>
+            </div>
+        `;
+
+        const badgeClass = status.toLowerCase() === 'active' ? 'badge-active' : 'badge-inactive';
+
+        const row = `
+            <tr>
+                <td>${sno}</td>
+                <td>${renderIcons('GIC', 'fa-car', 'gic-color')}</td>
+                <td>${renderIcons('HEALTH', 'fa-heartbeat', 'health-color')}</td>
+                <td>${renderIcons('NONMOTOR', 'fa-ship', 'nonmotor-color')}</td>
+                <td>${renderIcons('LIC', 'fa-umbrella', 'lic-color')}</td>
+                <td style="font-weight:600;">${name}</td>
+                <td style="color:#555;">${email}</td>
+                <td>${mobile}</td>
+                <td><span class="${badgeClass}">${status}</span></td>
+                <td style="font-weight:500;">${partnerDate}</td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+
+    document.getElementById('showingInfo').innerText = `Showing ${startIdx + 1} to ${Math.min(startIdx + rowsPerPage, filtered.length)} of ${filtered.length}`;
+}
+
+// --- ACTIONS ---
+function openExpenseManager(id, name, type) {
+    currentEntityId = id;
+    currentEntityName = name;
+    
+    document.getElementById('partnerListSection').style.display = 'none';
+    document.getElementById('commissionSection').style.display = 'block';
+    
+    const card = document.getElementById('commCard');
+    const config = TYPE_CONFIG[type];
+    
+    card.classList.remove('header-GIC', 'header-HEALTH', 'header-NONMOTOR', 'header-LIC');
+    card.classList.add(config.headerClass);
+
+    document.getElementById('commissionHeader').innerHTML = `<span style="color:${config.color}">Set Partner ${type} Expenses</span>`;
+    document.getElementById('subHeaderBadge').innerHTML = `Managing for: <b>${name}</b>`;
+    
+    switchTab(type); 
+}
+
+function hideCommission() {
+    document.getElementById('partnerListSection').style.display = 'block';
+    document.getElementById('commissionSection').style.display = 'none';
+}
+
+function openReport(id, name, type) {
+    const config = TYPE_CONFIG[type];
+    if(config) window.location.href = `${config.reportPage}?partnerId=${id}&name=${encodeURIComponent(name)}&type=${type}`;
+}
+
+// --- COMMISSION DATA LOGIC (SYNCED) ---
+function switchTab(type) {
+    currentType = type;
+    loadCommissionEntries();
+}
+
+async function loadCommissionEntries() {
+    const tbody = document.getElementById('entriesBody');
+    tbody.innerHTML = '';
+    
+    document.getElementById('commShowingText').style.display = 'block';
+    document.getElementById('commShowingText').innerText = "Syncing dates from Dealer system...";
+
+    const config = TYPE_CONFIG[currentType];
+
+    try {
+        const url = `${API_BASE}${config.listApi}`;
+        
+        const res = await fetch(url);
+        const result = await res.json();
+
+        if(result.success && result.data && result.data.length > 0) {
+            
+            const uniqueDatesMap = new Map();
+            
+            result.data.forEach(item => {
+                const rDate = item.date || item.commissionDate;
+                if(rDate) {
+                    const sortableDate = String(rDate).substring(0, 10);
+                    if(!uniqueDatesMap.has(sortableDate)) {
+                        uniqueDatesMap.set(sortableDate, rDate);
+                    }
+                }
+            });
+
+            const uniqueDates = Array.from(uniqueDatesMap.values());
+
+            if (uniqueDates.length === 0) {
+                document.getElementById('commShowingText').innerText = "No dates found in Dealer system.";
+                return;
+            }
+
+            // Sort DESC
+            uniqueDates.sort((a, b) => String(b).localeCompare(String(a)));
+            
+            uniqueDates.forEach((rawDate, index) => {
+                const displayStr = formatDisplayDate(rawDate);
+                const linkDate = normalizeDateForLink(rawDate);
+
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td style="font-weight:600; color:#333;">${displayStr}</td>
+                    <td style="text-align: right;">
+                        <button onclick="openBreakdown('${linkDate}')" class="btn-edit-rules">
+                            <i class="fas fa-pencil-alt"></i> Edit Rules
+                        </button>
+                    </td>
+                `;
+            });
+            document.getElementById('commShowingText').style.display = 'none';
+        } else {
+            document.getElementById('commShowingText').innerText = "No dates found in Dealer system.";
+        }
+    } catch (err) {
+        console.error(err);
+        document.getElementById('commShowingText').innerText = "Error syncing data.";
+    }
+}
+
+// --- ✅ FIXED: OPEN DIRECTLY (NO LAYOUT REDIRECT) ---
+function openBreakdown(date) {
+    const config = TYPE_CONFIG[currentType];
+    
+    // Direct navigation to the HTML file defined in TYPE_CONFIG
+    // This avoids reloading 'layout.html' and prevents the double sidebar
+    if (config && config.breakdownPage) {
+        const safeName = encodeURIComponent(currentEntityName);
+        window.location.href = `${config.breakdownPage}?partnerId=${currentEntityId}&name=${safeName}&date=${date}`;
+    }
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', fetchEntities);
+function filterEntities() { currentPage = 1; renderEntityTable(); }
+function changePage(d) { currentPage += d; if(currentPage<1) currentPage=1; renderEntityTable(); }
+
+</script>
+</body>
+</html>

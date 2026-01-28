@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Users — Settings</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/sidebar.css">
+  <script src="../../assets/js/main.js" defer></script>
+  <script src="../../assets/js/settings.js" defer></script>
+</head>
+<body onload="requireLogin(); initUsersPage()">
+
+<div class="sidebar">
+  <div class="logo"><img src="../../assets/images/logo.png"></div>
+  <a href="../home.html">Home</a>
+  <a href="users.html" style="background:#374151">Users</a>
+  <a href="company-info.html">Company Info</a>
+  <a href="change-password.html">Change Password</a>
+</div>
+
+<div class="page-content">
+  <h2>User Management</h2>
+
+  <div class="table-box">
+    <h3>Register New User</h3>
+    <label>Name*</label><input id="regName">
+    <label>Mobile*</label><input id="regMobile" maxlength="10">
+    <label>Email*</label><input id="regEmail">
+    <label>Approved By (default)</label><input id="regApprover" value="insgzb@gmail.com">
+    <button onclick="registerSettingsUser()">Register</button>
+  </div>
+
+  <div class="table-box" style="margin-top:16px;">
+    <h3>Pending Users</h3>
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Applied</th><th>Action</th></tr></thead>
+      <tbody id="pendingBody"></tbody>
+    </table>
+  </div>
+
+  <div class="table-box" style="margin-top:16px;">
+    <h3>All Users</h3>
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Status</th><th>Created</th></tr></thead>
+      <tbody id="allUsersBody"></tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>

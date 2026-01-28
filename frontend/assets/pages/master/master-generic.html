@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Master - Generic</title>
+<style>
+  body{font-family:Arial,sans-serif;background:#f4f6f9;padding:18px}
+  .box{background:#fff;padding:16px;border-radius:8px;max-width:980px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+  label{display:block;margin:8px 0 6px;font-weight:600}
+  input,select{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px}
+  .btn{padding:9px 14px;border:none;border-radius:6px;background:#013859;color:#fff;cursor:pointer;margin-right:8px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+  .small{font-size:13px;color:#666}
+  .action-btn{padding:6px 8px;border-radius:5px;border:none;cursor:pointer;font-size:13px}
+  .edit{background:#4CAF50;color:#fff}
+  .del{background:#d9534f;color:#fff}
+</style>
+</head>
+<body>
+<div class="box">
+  <h2 id="title">MASTER</h2>
+
+  <div id="formArea"></div>
+
+  <div style="margin-top:12px">
+    <button class="btn" id="saveBtn">Save</button>
+    <button class="btn" style="background:#ff9800" id="newBtn">Add New</button>
+  </div>
+</div>
+
+<div class="box" style="margin-top:14px">
+  <h3 id="listTitle">Added Records</h3>
+  <table><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+</div>
+
+<script>
+/*
+CONFIG:
+fields = [
+  { key:'dealer_name', label:'Dealer Name', type:'text', required:true, validate:'alpha' },
+  { key:'phone', label:'Phone', type:'tel', required:true, validate:'phone' },
+  { key:'email', label:'Email', type:'email', validate:'email' },
+  { key:'inout', label:'In/Out', type:'select', options:['In','Out'] },
+]
+*/
+
+const API_BASE = "/api/master/item"; // POST /item/:type  GET /item/:type etc
+let config = null;       // will be set by page including this generic file
+let editId = null;
+
+function renderForm() {
+  document.getElementById('title').innerText = (config.title||'MASTER').toUpperCase();
+  const area = document.getElementById('formArea'); area.innerHTML = '';
+  // auto S.No & Date & Status fields
+  area.innerHTML += `<label>S.No *</label><input id="sno" readonly>`;
+  config.fields.forEach(f=>{
+    if(f.type==='select'){
+      let opts = f.options.map(o=>`<option value="${o}">${o}</option>`).join('');
+      area.innerHTML += `<label>${f.label}${f.required? ' *':''}</label><select id="${f.key}">${opts}</select>`;
+    } else {
+      area.innerHTML += `<label>${f.label}${f.required? ' *':''}</label><input id="${f.key}" type="${f.type||'text'}">`;
+    }
+  });
+  // status + date
+  area.innerHTML += `<label>Status *</label><select id="status"><option>Active</option><option>Inactive</option></select>`;
+  area.innerHTML += `<label>Date</label><input id="date" readonly>`;
+  // header for table
+  let headRow = `<tr>${['S.No',...config.listHeaders,'Status','Saved Date','Actions'].map(h=>`<th>${h}</th>`).join('')}</tr>`;
+  document.getElementById('thead').innerHTML = headRow;
+}
+
+function setDefaults(){
+  document.getElementById('date').value = new Date().toISOString().split('T')[0];
+  loadList();
+  loadSno();
+}
+
+async function loadSno(){
+  const res = await fetch(`${API_BASE}/${config.type}`);
+  const json = await res.json();
+  document.getElementById('sno').value = (json.data.length + 1);
+}
+
+async function save(){
+  // validation
+  for(const f of config.fields){
+    if(f.required){
+      const v = (document.getElementById(f.key).value || '').trim();
+      if(!v){ alert(`${f.label} is required`); return; }
+      if(f.validate==='alpha' && !/^[A-Za-z\s]+$/.test(v)){ alert(`${f.label} only alphabets allowed`); return; }
+      if(f.validate==='phone' && !/^[6-9]\d{9}$/.test(v)){ alert('Invalid mobile number'); return; }
+      if(f.validate==='email' && !/^\S+@\S+\.\S+$/.test(v)){ alert('Invalid email'); return; }
+    }
+  }
+  // collect payload
+  const meta = {};
+  config.fields.forEach(f=> meta[f.key] = document.getElementById(f.key).value.trim());
+  const payload = {
+    s_no: Number(document.getElementById('sno').value),
+    name: meta[config.nameKey] || '',
+    meta,
+    status: document.getElementById('status').value,
+    date: document.getElementById('date').value
+  };
+
+  const url = editId? `${API_BASE}/${config.type}/${editId}` : `${API_BASE}/${config.type}`;
+  const method = editId? 'PUT' : 'POST';
+  const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const r = await res.json();
+  if(r.success){
+    editId = null;
+    reset();
+    loadList();
+    loadSno();
+  } else alert('Error: ' + r.message);
+}
+
+async function loadList(){
+  const res = await fetch(`${API_BASE}/${config.type}`);
+  const json = await res.json();
+  const tbody = document.getElementById('tbody'); tbody.innerHTML = '';
+  json.data.forEach(item=>{
+    const row = document.createElement('tr');
+    const cols = [];
+    cols.push(`<td>${item.s_no}</td>`);
+    config.listKeys.forEach(k=>{
+      const v = item.meta && item.meta[k] !== undefined ? item.meta[k] : (item[k]||'');
+      cols.push(`<td>${v}</td>`);
+    });
+    cols.push(`<td>${item.status}</td>`);
+    cols.push(`<td>${item.date}</td>`);
+    cols.push(`<td>
+      <button class="action-btn edit" onclick="startEdit('${item._id}')">Edit</button>
+      <button class="action-btn del" onclick="delItem('${item._id}')">Del</button>
+    </td>`);
+    row.innerHTML = cols.join('');
+    tbody.appendChild(row);
+  });
+}
+
+async function delItem(id){
+  if(!confirm('Delete record?')) return;
+  await fetch(`${API_BASE}/${config.type}/${id}`, { method:'DELETE' });
+  loadList(); loadSno();
+}
+
+function startEdit(id){
+  // fetch single item? we will load list and find
+  fetch(`${API_BASE}/${config.type}`).then(r=>r.json()).then(j=>{
+    const item = j.data.find(i=>i._id===id);
+    if(!item) return alert('Not found');
+    editId = id;
+    document.getElementById('sno').value = item.s_no;
+    config.fields.forEach(f=> {
+      const el = document.getElementById(f.key);
+      if(el) el.value = item.meta && item.meta[f.key] !== undefined ? item.meta[f.key] : (item[f.key] || '');
+    });
+    document.getElementById('status').value = item.status;
+    document.getElementById('date').value = item.date;
+  });
+}
+
+function reset(){
+  config.fields.forEach(f=> document.getElementById(f.key).value = '');
+  document.getElementById('status').value = 'Active';
+  document.getElementById('date').value = new Date().toISOString().split('T')[0];
+}
+
+document.getElementById('saveBtn').addEventListener('click', save);
+document.getElementById('newBtn').addEventListener('click', ()=>{
+  editId = null; reset(); loadSno();
+});
+</script>
+</body>
+</html>

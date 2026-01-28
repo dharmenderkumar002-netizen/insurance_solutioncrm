@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    // Redirect to main layout if not in an iframe.
+    // This prevents direct access to the page.
+    if (window.self === window.top) {
+        // The path to layout.html from this page.
+        window.location.href = 'layout.html';
+    }
+</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GIC Policy Service Transaction</title>
+
+<link rel="stylesheet" href="../../assets/css/main.css">
+<link rel="stylesheet" href="../assets/css/gic.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+    /* CSS RESET & BASICS */
+    * { box-sizing: border-box; }
+
+    /* ERROR / SUCCESS MESSAGE TOAST */
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px; }
+    .toast { background: #333; color: white; padding: 12px 16px; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; display: flex; align-items: center; justify-content: space-between; animation: slideIn 0.3s ease-out; }
+    .toast.error { background: #d9534f; }
+    .toast.success { background: #5cb85c; }
+    .toast.info { background: #31708f; }
+    .toast.warning { background: #f0ad4e; color: #fff; } /* Added for Validation Warning */
+
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* CONDITIONAL FIELDS HIDDEN BY DEFAULT */
+    #trailorFieldContainer, #pcvMandatoryContainer, #paTaxiContainer { display: none; }
+
+    /* ✨ SEARCH DROPDOWN - WIDE GRID LAYOUT */
+    #searchList { position: absolute; top: 100%; left: 0; min-width: 850px; max-width: 950px; max-height: 400px; overflow-y: auto; background: white; border: 1px solid #ccc; border-top: none; z-index: 2000; box-shadow: 0 10px 25px rgba(0,0,0,0.25); border-radius: 0 0 6px 6px; }
+    .search-item { display: grid; grid-template-columns: 110px 130px 70px 100px 120px 1fr; gap: 12px; padding: 8px 12px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 12px; align-items: center; transition: background 0.1s; }
+    .search-item:hover { background-color: #f1f8ff; }
+
+    /* Header Row Styling */
+    .si-header { background: #f4f4f4; font-weight: bold; color: #333; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #ddd; }
+    .si-section-header { background: #fff8e1; color: #b7791f; font-weight: bold; padding: 5px 10px; font-size: 11px; border-bottom: 1px solid #eee; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Individual Column Styles */
+    .si-val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #555; }
+    .si-vehicle { font-weight: 700; color: #2c3e50; }
+    .si-year { background: #e8f0fe; color: #1967d2; padding: 2px 6px; border-radius: 4px; font-weight: 600; text-align: center; }
+    .si-addr { font-size: 11px; color: #777; }
+
+    /* ==========================================
+       STEP 1: SMART SUGGESTION BOX STYLING (FIXED FOR TOP POSITION)
+       ========================================== */
+    .smart-suggestion-box {
+        position: absolute;
+        bottom: 100%; /* Ye line box ko UPAR open karegi */
+        left: 0;
+        width: 100%;
+        background: white;
+        border: 1px solid #ccc;
+        border-bottom: none; /* Bottom border hata diya taaki input se juda lage */
+        margin-bottom: 2px; /* Input aur box ke beech thoda gap */
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0 -4px 8px rgba(0,0,0,0.15); /* Shadow upar ki taraf */
+        border-radius: 4px 4px 0 0; /* Rounded corners upar ki taraf */
+        display: none; /* Hidden by default */
+    }
+
+    .smart-suggestion-item {
+        padding: 10px;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .smart-suggestion-item:hover {
+        background-color: #e3f2fd;
+    }
+
+    .smart-suggestion-item b { color: #2c3e50; font-weight: 600; }
+    .smart-suggestion-item span { color: #007bff; font-size: 11px; font-weight: 500; }
+    .no-record { padding: 10px; color: #d9534f; text-align: center; font-style: italic; }
+</style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div class="page-content">
+    <h2>GIC Policy Service Transaction</h2>
+
+    <div class="crm-card">
+        <h3>Customer & Service Actions</h3>
+        <div class="form-row" style="align-items: flex-end;">
+            <div class="form-col" style="position: relative; z-index: 101; flex: 2;"> 
+                <label for="searchBox">Search (Vehicle, Policy, Name, Mobile)</label>
+                <input id="searchBox" placeholder="Start typing to search..." autocomplete="off">
+                <div id="searchList"></div>
+            </div>
+            <div class="form-col" style="flex: 0 0 120px; max-width: 120px; margin-bottom: 0;">
+                <button type="button" class="crm-button-accent crm-button-small" onclick="openCustomerPopup()" style="white-space: nowrap; width: 100%;">👤 + Add New</button>
+            </div>
+            
+            <datalist id="vehicleSuggestions"></datalist>
+            <datalist id="fuelSuggestions"></datalist>
+            <datalist id="insuranceYearSuggestions"></datalist>
+            <datalist id="insuranceCoSuggestions"></datalist>
+            <datalist id="dealerSuggestions"></datalist>
+        </div>
+    </div>
+
+    <div class="crm-card">
+        <h3>Customer Information</h3>
+        <input type="hidden" id="customerId">
+        <div class="form-row">
+            <div class="form-col"><label for="sno">S.No</label><input id="sno" readonly></div>
+            <div class="form-col"><label for="customerName">Customer Name *</label><input id="customerName" readonly></div>
+            <div class="form-col"><label for="customerMobile">Mobile</label><input id="customerMobile" readonly></div>
+            <div class="form-col"><label for="partner">Partner</label><select id="partner"></select></div>
+            <div class="form-col"><label for="customerEmail">Email ID</label><input id="customerEmail" readonly></div>
+            <div class="form-col"><label for="address">Address</label><input id="address" readonly></div>
+        </div>
+    </div>
+
+    <div class="crm-card">
+        <h3>Select GIC Product</h3>
+        <div class="form-row">
+            <div class="form-col col-100">
+                <div id="gicProductContainer" class="radio-grid-container"></div>
+                <div id="gicProductWarning" style="color:#b34000; margin-top:6px; display:none;">No active GIC products found.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="crm-card">
+        <h3>Policy details</h3>
+        <div class="form-row">
+            <div class="form-col"><label for="policyNo">Policy No *</label><input id="policyNo"></div>
+            <div class="form-col"><label for="policyType">Policy Type *</label><select id="policyType"><option>New</option><option>Renewal</option><option>Rollover</option><option>Used</option></select></div>
+            <div class="form-col"><label for="coverageType">Coverage Type *</label><select id="coverageType"></select></div>
+            
+            <div class="form-col">
+                <label for="vehicleNo">Vehicle No *</label>
+                <input id="vehicleNo" placeholder="UP14XX0000 or NEW" style="text-transform:uppercase;">
+            </div>
+
+            <div class="form-col"><label for="vehicleName">Vehicle Name *</label><input id="vehicleName" list="vehicleSuggestions" placeholder="Make - Model"></div>
+            <div class="form-col"><label for="vehicleRegDate">Vehicle Reg. Date *</label><input type="date" id="vehicleRegDate"></div>
+            <div class="form-col"><label for="fuel">Fuel *</label><input id="fuel" list="fuelSuggestions"></div>
+            
+            <div class="form-col"><label for="insuranceYear">Insurance Year *</label><input id="insuranceYear" list="insuranceYearSuggestions"></div>
+            
+            <div class="form-col">
+                <label for="ncb">NCB (%)</label>
+                <select id="ncb">
+                    <option value="">-- Select --</option>
+                    <option>0</option><option>20</option><option>25</option><option>35</option><option>45</option><option>50</option><option>65</option>
+                </select>
+            </div>
+
+            
+            <div class="form-col"><label for="ccKwGvw">CC / KW / GVW</label><input id="ccKwGvw"></div>
+            <div class="form-col"><label for="chassisNo">Chassis No *</label><input id="chassisNo"></div>
+            <div class="form-col"><label for="engineNo">Engine No *</label><input id="engineNo"></div>
+            <div class="form-col"><label for="policyIssueDate">Policy Issue Date *</label><input type="date" id="policyIssueDate"></div>
+            <div class="form-col"><label for="odStartDate">OD Start *</label><input type="date" id="odStartDate"></div>
+            <div class="form-col"><label for="odEndDate">OD End *</label><input type="date" id="odEndDate"></div>
+            <div class="form-col"><label for="tpStartDate">TP Start *</label><input type="date" id="tpStartDate"></div>
+            <div class="form-col"><label for="tpEndDate">TP End *</label><input type="date" id="tpEndDate"></div>
+            <div class="form-col"><label for="idv">IDV *</label><input id="idv" type="number"></div>
+            <div class="form-col"><label for="premium">Premium *</label><input id="premium" type="number"></div>
+            <div class="form-col"><label for="netpremium">Net Premium *</label><input id="netpremium" type="number"></div>
+            <div class="form-col" id="paToPassContainer"><label for="patopass">PA to Pass *</label><input id="patopass" type="number"></div>
+            <div class="form-col"><label for="pa">PA *</label><input id="pa" type="number"></div>
+            <div class="form-col"><label for="odpremium">OD Premium</label><input id="odpremium" type="number"></div>            
+            <div class="form-col"><label for="discount">Discount (%)</label><input id="discount" type="number"></div>
+
+            <div id="pcvMandatoryContainer" style="display:contents;">
+
+                 <div class="form-col"><label for="vehicleClass">Vehicle Class</label><input id="vehicleClass"></div>
+            </div>
+
+                <div class="form-col" id="paTaxiContainer">
+                <label for="paTaxi">PA 4 Taxi</label>
+                <input id="paTaxi" type="number">
+            </div>
+            
+            <div class="form-col" id="trailorFieldContainer">
+                <label for="trailorType">Trailors</label>
+                <select id="trailorType">
+                    <option value="">-- Select --</option>
+                    <option value="AgTrailor">Agri Trailors</option>
+                    <option value="OtherTrailor">Other Trailor</option>
+                </select>
+            </div>
+            <div class="form-col">
+            <label for="dealerName">Dealer Name (Payout Group) *</label>
+            <input id="dealerName" placeholder="Click to see available dealers..." autocomplete="off">
+        </div>
+        <div class="form-col">
+            <label for="insCompany">Insurance Company *</label>
+            <input id="insCompany" list="insuranceCoSuggestions" placeholder="Type to search Company...">
+        </div>
+        </div>
+    </div>
+
+    <div class="crm-card">
+        <h3>Previous Policy Details</h3>
+        <div class="form-row">
+            <div class="form-col"><label for="pypEndDate">PYP End Date</label><input type="date" id="pypEndDate"></div>
+            <div class="form-col"><label for="previousPolicyNo">PYP Policy No</label><input id="previousPolicyNo"></div>
+            <div class="form-col"><label for="pypInsCo">PYP Insurance Co</label><select id="pypInsCo"></select></div>
+        </div>
+    </div>
+
+    <div class="crm-card">
+        <h3>Payment & Documentation</h3>
+        <div class="form-row">
+            <div class="form-col"><label for="premiumamt">Premium Amt *</label><input id="premiumamt" placeholder="Prem. Amt."></div>
+            <div class="form-col"><label for="amountDate">Amount Received Date</label><input type="date" id="amountDate"></div>
+            <div class="form-col"><label for="paymentMode">Payment Mode</label><select id="paymentMode"></select></div>
+            <div class="form-col"><label for="chequeDd">Cheque / UPI Ref</label><input id="chequeDd"></div>
+            <div class="form-col"><label for="bankName">Bank Name</label><select id="bankName"></select></div>
+            
+            <div class="form-col">
+                <label>Policy Upload</label>
+                <div class="attachment-btn" id="policyUploadBtn">Upload Policy Doc</div>
+            </div>
+            <div class="form-col">
+                <label>RC / Other Docs</label>
+                <div class="attachment-btn" id="rcDocUploadBtn">Upload Doc</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="width: 100%; margin-top: 25px;">
+        <div class="crm-card" style="text-align: center; padding: 15px;">
+            <button class="crm-button-primary" type="button" onclick="saveGIC()" style="min-width: 250px;">
+                ✅ Save GIC Transaction
+            </button>
+            <div id="saveMessage" style="margin-top:10px; font-weight:bold;"></div>
+        </div>
+
+        <div class="crm-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                <h3 style="margin:0;">Recent GIC Records (Last 10)</h3>
+                <button id="btnRefresh" class="crm-button-accent crm-button-small" onclick="loadRecentGIC()" type="button">🔄 Refresh</button>
+            </div>
+            <div class="table-responsive">
+                <table class="crm-table" style="width:100%;">
+                    <thead style="background:#f4f4f4;">
+<tr>
+  <th>#</th>
+  <th>Policy No</th>
+  <th>Customer</th>
+  <th>Vehicle</th>
+  <th>Partner</th>
+  <th>Dealer</th>
+  <th>Product</th>
+  <th>Od Premium</th>
+  <th>Premium</th>
+  <th>Date</th>
+  <th>Action</th>
+</tr>
+</thead>
+
+                    <tbody id="recentGicTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =================== CONFIG =================== */
+    // Use a relative path for the API base. This works for both local and production.
+    // Assumes frontend and backend are on the same domain.
+const API_BASE = "";
+const GIC_MASTER_API_URL = `${API_BASE}/api/master/item/gicproduct`;
+const COVERAGE_MASTER_API_URL = `${API_BASE}/api/master/item/coverage`;
+const VEHICLE_MASTER_API_URL = `${API_BASE}/api/master/item/vehicle`;
+const FUEL_MASTER_API_URL = `${API_BASE}/api/master/item/fuel`;
+const INSURANCE_YEAR_MASTER_API_URL = `${API_BASE}/api/master/item/insuranceyear`;
+const PARTNER_MASTER_API_URL = `${API_BASE}/api/master/partner`;
+const INSURANCE_CO_MASTER_API_URL = `${API_BASE}/api/master/item/insurancecompany`;
+const DEALER_MASTER_API_URL = `${API_BASE}/api/master/dealer`;
+const PAYMENT_MODE_MASTER_API_URL = `${API_BASE}/api/master/item/paymentmode`;
+const BANK_MASTER_API_URL = `${API_BASE}/api/master/bank`;
+
+/* =================== TOAST NOTIFICATION =================== */
+function showToast(msg, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span>${msg}</span> <span style="margin-left:10px; cursor:pointer;" onclick="this.parentElement.remove()">✖</span>`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 5000);
+}
+
+/* =================== UTILS =================== */
+function el(id) { return document.getElementById(id); }
+function val(id) { var element = document.getElementById(id); return element ? element.value : ''; }
+function isVisible(id) { var element = document.getElementById(id); return element && element.style.display !== 'none'; }
+
+
+// 1. VEHICLE NO VALIDATION (Strict Logic)
+el('vehicleNo').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+
+el('vehicleNo').addEventListener('blur', (e) => {
+    const v = e.target.value;
+
+    // ✅ "NEW" ya Khali hai toh chhod do (Allow)
+    if(!v || v === 'NEW') return;
+
+    // Regex for: Standard, BH Series, Embassy
+    const regex = /^([A-Z]{2}\d{1,2}[A-Z]{0,3}\d{4})|(\d{2}BH\d{4}[A-Z]{1,2})|(\d{1,3}(C[D|C]|UN)\d{1,4})$/;
+
+    if(!regex.test(v)) {
+        showToast("⚠️ Invalid Format! Resetting...", "error"); // Toast dikhao
+        e.target.value = ''; // 🛑 VALUE CLEAR KAR DO
+        setTimeout(() => el('vehicleNo').focus(), 100); // Wapas cursor wahi le aao
+    }
+});
+
+
+
+// 2. FINANCIAL YEAR HELPER
+function getCurrentFY() {
+    const d = new Date();
+    const m = d.getMonth() + 1; // 1-12
+    const y = d.getFullYear();
+    return (m >= 4) ? `${y}-${y+1}` : `${y-1}-${y}`;
+}
+
+// 4 & 5. DATE LOGIC & VALIDATION
+function setupDateLogic() {
+    const today = new Date().toISOString().split('T')[0];
+    el('policyIssueDate').value = today; // Default Today
+
+    // Auto Calc End Date
+    el('odStartDate').addEventListener('change', (e) => {
+        const startStr = e.target.value;
+        if (!startStr) return;
+        const start = new Date(startStr);
+        
+        // Validate Issue Date vs Start Date
+        const issueStr = el('policyIssueDate').value;
+        if (issueStr && new Date(issueStr) > start) {
+            showToast("⚠️ Policy Issue Date cannot be after OD Start Date", "warning");
+            el('policyIssueDate').value = startStr;
+        }
+
+        // Calc End Date (Start + 1 yr - 1 day)
+        const end = new Date(start);
+        end.setFullYear(end.getFullYear() + 1);
+        end.setDate(end.getDate() - 1);
+        el('odEndDate').value = end.toISOString().split('T')[0];
+
+        // LOGIC #2: PYP End Date = OD Start Date - 1 Day
+        const pypEnd = new Date(start);
+        pypEnd.setDate(pypEnd.getDate() - 1);
+        el('pypEndDate').value = pypEnd.toISOString().split('T')[0];
+    });
+
+    // Validate if user changes Issue Date manually
+    el('policyIssueDate').addEventListener('change', (e) => {
+        const issue = new Date(e.target.value);
+        const startStr = el('odStartDate').value;
+        if (startStr && issue > new Date(startStr)) {
+            showToast("⚠️ Policy Issue Date cannot be after OD Start Date", "warning");
+            e.target.value = startStr; 
+        }
+    });
+}
+
+/* =================== POPUP (customer) =================== */
+function openCustomerPopup() {
+    window.open("universal-customer.html", "CustPopup", "width=480,height=650,left=100,top=80,resizable=no,scrollbars=yes,toolbar=no,menubar=no");
+}
+window.addEventListener("message", (e) => {
+    if (e.data && e.data.type === 'CUSTOMER_SAVED') {
+        const c = e.data.payload || {};
+        if(c._id || c.id) el('customerId').value = c._id || c.id;
+        el('sno').value = c.sno || '';
+        el('customerName').value = c.name || '';
+        el('customerMobile').value = c.mobile || '';
+        el('customerEmail').value = c.email || '';
+        el('address').value = c.address || '';
+        if (c.partner) {
+            const partnerSelect = el('partner');
+            let opt = Array.from(partnerSelect.options).find(o => o.value === c.partner || o.text === c.partner);
+            if (opt) partnerSelect.value = opt.value;
+        }
+    }
+}); 
+
+/* =================== FETCH / LOAD HELPERS =================== */
+async function fetchJson(url) {
+    try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } catch (err) { console.error(`Fetch failed: ${url}`, err); return null; }
+}
+
+async function loadSimpleMaster(url, elementId, keyName) {
+    const json = await fetchJson(url);
+    const list = (json && Array.isArray(json.data)) ? json.data.filter(x=>x.status==="Active").map(i=>i[keyName] || i.name).filter(Boolean) : [];
+    const element = el(elementId);
+    if(!element) return;
+    element.innerHTML = elementId.includes('Suggestions') ? '' : '<option value="">-- Select --</option>';
+    list.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; 
+        if(!elementId.includes('Suggestions')) opt.textContent = v;
+        element.appendChild(opt);
+    });
+}
+
+async function loadPartners() { loadSimpleMaster(PARTNER_MASTER_API_URL, 'partner', 'name'); }
+async function loadCoverageTypes() { loadSimpleMaster(COVERAGE_MASTER_API_URL, 'coverageType', 'name'); }
+async function loadFuel() { loadSimpleMaster(FUEL_MASTER_API_URL, 'fuelSuggestions', 'fuel'); }
+async function loadInsuranceYears() { loadSimpleMaster(INSURANCE_YEAR_MASTER_API_URL, 'insuranceYearSuggestions', 'year'); }
+async function loadInsuranceCompanies() { loadSimpleMaster(INSURANCE_CO_MASTER_API_URL, 'insuranceCoSuggestions', 'companyName'); }
+async function loadPYPInsCompanies() { loadSimpleMaster(INSURANCE_CO_MASTER_API_URL, 'pypInsCo', 'companyName'); }
+async function loadDealers() { loadSimpleMaster(DEALER_MASTER_API_URL, 'dealerSuggestions', 'name'); }
+async function loadPaymentModes() { loadSimpleMaster(PAYMENT_MODE_MASTER_API_URL, 'paymentMode', 'mode'); }
+
+async function loadBankNames() {
+    const json = await fetchJson(BANK_MASTER_API_URL);
+    const sel = el('bankName');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Select Bank --</option>';
+    let rows = (json && (Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []))) || [];
+    rows.filter(b => (b.status || '').toLowerCase() === 'active').forEach(b => {
+        const bankName = b.name || b.bankName || b.bank_name || b.label;
+        if (bankName) {
+            const opt = document.createElement("option");
+            opt.value = bankName; opt.textContent = bankName;
+            sel.appendChild(opt);
+        }
+    });
+}
+
+let allGicProducts = [];
+let allVehicles = [];
+
+async function fetchGicProducts() {
+    const json = await fetchJson(GIC_MASTER_API_URL);
+    allGicProducts = (json && Array.isArray(json.data)) ? json.data.filter(item => item.status === "Active") : [];
+    renderGicProducts();
+}
+
+function renderGicProducts() {
+    const container = el('gicProductContainer');
+    const warn = el('gicProductWarning');
+    container.innerHTML = '';
+    if (allGicProducts.length === 0) {
+        if (warn) warn.style.display = 'block';
+        return;
+    }
+    if (warn) warn.style.display = 'none';
+    allGicProducts.forEach(prod => {
+        const name = prod.name || (prod.meta && prod.meta.gic) || `Product-${prod._id}`;
+        const id = `gic-${prod._id}`;
+        const label = document.createElement('label');
+        const radio = document.createElement('input');
+        radio.type = 'radio'; radio.name = 'gicProduct'; radio.value = prod._id; radio.id = id;
+        radio.addEventListener('change', () => handleProductChange(prod._id, name));
+        const span = document.createElement('span'); span.textContent = name;
+        label.appendChild(radio); label.appendChild(span);
+        container.appendChild(label);
+    });
+    const first = container.querySelector('input[type="radio"]');
+    if (first) { first.checked = true; first.dispatchEvent(new Event('change')); }
+}
+
+async function fetchAllVehicles() {
+    const json = await fetchJson(VEHICLE_MASTER_API_URL);
+    allVehicles = (json && Array.isArray(json.data)) ? json.data.filter(v => v.status === "Active") : [];
+}
+
+function handleProductChange(selectedGicId, selectedGicName) {
+    const productName = (selectedGicName || '').toLowerCase().trim();
+    
+    // LOGIC #1: Only allow TP dates edit if Car/Bike/Scooter
+    const tpStart = el('tpStartDate');
+    const tpEnd = el('tpEndDate');
+    
+    if (tpStart && tpEnd) {
+        if (productName.includes('car') || productName.includes('bike') || productName.includes('scoot')) {
+            tpStart.disabled = false;
+            tpEnd.disabled = false;
+        } else {
+            tpStart.disabled = true;
+            tpEnd.disabled = true;
+            tpStart.value = ''; // Blank out if disabled
+            tpEnd.value = '';   // Blank out if disabled
+        }
+    }
+
+    const vehicleDL = el('vehicleSuggestions');
+    if (vehicleDL) {
+        vehicleDL.innerHTML = '';
+        let requiredCategory = '';
+        if (productName.includes('car')) requiredCategory = 'car';
+        else if (productName.includes('bike') || productName.includes('scoot')) requiredCategory = 'bike';
+        else if (productName.includes('pcv')) requiredCategory = 'pcv';
+        else if (productName.includes('gcv')) requiredCategory = 'gcv';
+        else if (productName.includes('misc d')) requiredCategory = 'misc d';
+        
+        const filtered = allVehicles.filter(v => {
+             const vName = (v.name || v.makeModel || '').toLowerCase();
+             const vCat = (v.category || '').toLowerCase();
+             return (requiredCategory === '' || vCat.includes(requiredCategory) || vName.includes(requiredCategory));
+        });
+        filtered.forEach(v => { 
+            const opt = document.createElement('option'); 
+            opt.value = v.name || v.makeModel; 
+            vehicleDL.appendChild(opt); 
+        });
+    }    
+    const isMiscDOrGcv = productName.includes('misc d') || productName.includes('gcv');
+    const isPcv = productName.includes('pcv'); 
+    const trailorContainer = el('trailorFieldContainer');
+    if (trailorContainer) {
+        if (isMiscDOrGcv) { trailorContainer.style.display = 'flex'; } 
+        else { trailorContainer.style.display = 'none'; el('trailorType').value = ''; }
+    }
+    const paTaxiContainer = el('paTaxiContainer');
+    if (paTaxiContainer) {
+        if (isPcv) { paTaxiContainer.style.display = 'block'; } 
+        else { paTaxiContainer.style.display = 'none'; el('paTaxi').value = ''; }
+    }
+}
+
+/* =================== SAVE & COLLECT DATA =================== */
+function collectGICData() {
+    const selectedProduct = document.querySelector('input[name="gicProduct"]:checked');
+    const gicProductId = selectedProduct ? selectedProduct.value : null;
+    
+    // ✅ Product Name nikalne ka logic (Radio label ke saath jo text hai)
+    const productName = selectedProduct ? selectedProduct.nextElementSibling.innerText.trim() : null;
+
+    return {
+        // Customer Info
+        customerName: val('customerName'),
+        customerMobile: val('customerMobile'),
+        customerEmail: val('customerEmail'),
+        address: val('address'),
+        customerId: val('customerId'),
+        partner: val('partner'),
+
+        // Policy Info
+        policyNo: val('policyNo'),
+        policyType: val('policyType'),
+        coverageType: val('coverageType'),
+        vehicleNo: val('vehicleNo'),
+        vehicleName: val('vehicleName'),
+        vehicleRegDate: val('vehicleRegDate'),
+        fuel: val('fuel'),
+        insuranceYear: val('insuranceYear'),
+        ncb: val('ncb'),
+        vehicleClass: val('vehicleClass'),
+        ccKwGvw: val('ccKwGvw'),
+        chassisNo: val('chassisNo'),
+        engineNo: val('engineNo'),
+
+        // Dates
+        policyIssueDate: val('policyIssueDate'),
+        odStartDate: val('odStartDate'),
+        odEndDate: val('odEndDate'),
+        tpStartDate: val('tpStartDate'),
+        tpEndDate: val('tpEndDate'),
+
+        // Company & Dealer
+        dealerName: val('dealerName'),
+        insCompany: val('insCompany'),
+
+        // Finance Fields (Numeric Conversion)
+        odpremium: Number(val('odpremium') || 0),
+        discount: Number(val('discount') || 0),
+        netPremium: Number(val('netpremium') || 0),
+        premium: Number(val('premium') || 0),
+        idv: Number(val('idv') || 0),
+
+        // ✅ GIC Product Mapping
+        gicProductId: gicProductId,  // Database ID (Relation)
+        gicProduct: productName,     // String Name (Reports ke liye)
+
+        // Conditional Fields
+        trailorType: isVisible('trailorFieldContainer') ? val('trailorType') : null,
+        paTaxi: isVisible('paTaxiContainer') ? Number(val('paTaxi') || 0) : 0,
+        pa: Number(val('pa') || 0),
+        patopass: Number(val('patopass') || 0),
+
+        // Payment Info (Backend nested object ke liye)
+        premiumamt: Number(val('premiumamt') || 0),
+        amountDate: val('amountDate'),
+        paymentMode: val('paymentMode'),
+        chequeDd: val('chequeDd'),
+        bankName: val('bankName'),
+
+        // Previous Policy Info
+        pypInsCo: val('pypInsCo'),
+        pypEndDate: val('pypEndDate'),
+        previousPolicyNo: val('previousPolicyNo')
+    };
+}
+
+/* =================== SEARCH & AUTO-FILL =================== */
+const searchInput = el('searchBox');
+const searchResults = el('searchList');
+
+searchInput.addEventListener('input', async (e) => {
+    const query = e.target.value.trim();
+    if (query.length < 2) { searchResults.innerHTML = ''; return; }
+    try {
+        const res = await fetch(`${API_BASE}/api/gic/autocomplete?q=${query}`);
+        const data = await res.json();
+        searchResults.innerHTML = '';
+        const head = document.createElement('div'); head.className = 'search-item si-header';
+        head.innerHTML = `<div>Vehicle</div><div>Policy</div><div style="text-align:center;">FY</div><div>Engine</div><div>Chassis</div><div>Address</div>`;
+        searchResults.appendChild(head);
+        let hasResults = false;
+        if (data.gics && data.gics.length > 0) {
+            hasResults = true;
+            data.gics.sort((a, b) => {
+                const yearA = a.insuranceYear || ""; const yearB = b.insuranceYear || "";
+                return yearB.localeCompare(yearA, undefined, { numeric: true });
+            });
+            data.gics.forEach(item => {
+                const div = document.createElement('div'); div.className = 'search-item';
+                div.innerHTML = `<div class="si-val si-vehicle">${item.vehicleNo||'-'}</div><div class="si-val">${item.policyNo||'-'}</div><div class="si-year">${item.insuranceYear||'-'}</div><div class="si-val">${item.engineNo||'-'}</div><div class="si-val">${item.chassisNo||'-'}</div><div class="si-val si-addr">${item.customer?.address||'-'}</div>`;
+                // MODIFIED: Pass true for isFromSearch
+                div.onclick = () => { selectRecord(item._id || item.id, true); searchInput.value = item.vehicleNo; searchResults.innerHTML = ''; };
+                searchResults.appendChild(div);
+            });
+        }
+        if (data.customers && data.customers.length > 0) {
+            hasResults = true;
+            const divider = document.createElement('div'); divider.className = 'si-section-header'; divider.innerText = "👤 Customers (Start New Policy)";
+            searchResults.appendChild(divider);
+            data.customers.forEach(cust => {
+                const div = document.createElement('div'); div.className = 'search-item'; div.style.backgroundColor = "#fffef0";
+                div.innerHTML = `<div class="si-val" style="color:#28a745; font-weight:bold;">+ New Policy</div><div class="si-val">--</div><div class="si-val" style="text-align:center;">--</div><div class="si-val">--</div><div class="si-val">--</div><div class="si-val si-addr"><b>${cust.name}</b> (${cust.mobile||''})</div>`;
+                div.onclick = () => { fillCustomerOnly(cust); searchInput.value = cust.name; searchResults.innerHTML = ''; };
+                searchResults.appendChild(div);
+            });
+        }
+        if (!hasResults) searchResults.innerHTML = '<div style="padding:10px; color:#999; text-align:center; font-size:12px;">No matching record found</div>';
+    } catch (err) { console.error("Search Error:", err); }
+});
+
+async function selectRecord(id, isFromSearch = false) {
+    showToast("Fetching details...", "info"); 
+    try {
+        const res = await fetch(`${API_BASE}/api/gic/get-gic/${id}`);
+        const item = await res.json();
+        if (!item || item.error) { showToast("Record not found", "error"); return; }
+        fillGICForm(item, isFromSearch); showToast("Data Auto-filled successfully!", "success");
+    } catch (err) { showToast("Network Error", "error"); }
+}
+
+function fillCustomerOnly(cust) {
+    document.querySelectorAll('input:not(#searchBox), select').forEach(i => i.value = "");
+    el('customerId').value = cust._id; el('sno').value = cust.sno || '';
+    el('customerName').value = cust.name || ''; el('customerMobile').value = cust.mobile || '';
+    el('customerEmail').value = cust.email || ''; el('address').value = cust.address || '';
+    
+    // Default Defaults for New Entry
+    el('insuranceYear').value = getCurrentFY();
+    el('policyIssueDate').value = new Date().toISOString().split('T')[0];
+
+    showToast("Customer Selected. Please enter Policy Details.", "info");
+}
+
+function fillGICForm(item, isFromSearch = false) {
+    const formatDate = (dateStr) => { try { return dateStr ? new Date(dateStr).toISOString().split('T')[0] : ''; } catch (e) { return ''; } };
+    const setVal = (id, v) => { const e = document.getElementById(id); if(e) e.value = (v == null) ? '' : v; };
+
+    if(item.customer) {
+        setVal('customerId', item.customer._id || item.customer.id); setVal('sno', item.customer.sno);
+        setVal('customerName', item.customer.name); setVal('customerMobile', item.customer.mobile);
+        setVal('customerEmail', item.customer.email); setVal('address', item.customer.address);
+    }
+    if (item.partner) {
+        const pId = item.partner._id || item.partner.id || item.partner;
+        const sel = el('partner');
+        let opt = Array.from(sel.options).find(o => o.value === pId);
+        if(opt) sel.value = opt.value;
+    }
+
+    // LOGIC #3, #4, #5: Autofill Nuances
+    if (isFromSearch) {
+        // Search Click -> Renewal Mode Logic
+        setVal('policyNo', ''); // #4 Policy No Blank
+        setVal('previousPolicyNo', item.policyNo); // #3 Current Policy -> Previous Policy
+        
+        // #5 Partner -> PYP Insurance Co
+        if (item.partner) {
+            const pName = item.partner.name || item.partner;
+            // Try to match dropdown text/value
+            const pypSel = el('pypInsCo');
+            let pOpt = Array.from(pypSel.options).find(o => o.value === pName || o.text === pName);
+            if(pOpt) pypSel.value = pOpt.value;
+            // else setVal('pypInsCo', pName); // Fallback if editable
+        }
+    } else {
+        // Edit Mode (Standard)
+        setVal('policyNo', item.policyNo);
+        if (item.previousPolicy) {
+            setVal('previousPolicyNo', item.previousPolicy.previousPolicyNo);
+            setVal('pypInsCo', item.previousPolicy.insCo);
+        }
+    }
+
+    setVal('policyType', item.policyType); setVal('coverageType', item.coverageType);
+    setVal('vehicleNo', item.vehicleNo); setVal('vehicleName', item.vehicleName); setVal('vehicleRegDate', formatDate(item.vehicleRegDate));
+    setVal('fuel', item.fuel); 
+    setVal('insuranceYear', item.insuranceYear || getCurrentFY());
+    setVal('ncb', item.ncb);
+    setVal('vehicleClass', item.vehicleClass); setVal('ccKwGvw', item.ccKwGvw); setVal('chassisNo', item.chassisNo); setVal('engineNo', item.engineNo);
+    setVal('policyIssueDate', formatDate(item.policyIssueDate)); setVal('odStartDate', formatDate(item.odStartDate)); setVal('odEndDate', formatDate(item.odEndDate));
+    setVal('tpStartDate', formatDate(item.tpStartDate)); setVal('tpEndDate', formatDate(item.tpEndDate));
+    setVal('odpremium', item.odpremium); setVal('discount', item.discount); setVal('netpremium', item.netpremium); setVal('premium', item.premium); setVal('idv', item.idv);
+    setVal('paTaxi', item.paTaxi); setVal('trailorType', item.trailorType); setVal('pa', item.pa); setVal('patopass', item.paToPass);
+    if(item.trailorType) el('trailorFieldContainer').style.display = 'flex';
+    if(item.paTaxi) el('paTaxiContainer').style.display = 'block';
+    setVal('dealerName', item.dealerName);
+    setVal('insCompany', item.insCompany);
+
+    if (!isFromSearch && item.previousPolicy) {
+        setVal('pypEndDate', formatDate(item.previousPolicy.endDate)); 
+    }
+
+    if (item.amountReceived) {
+        setVal('premiumamt', item.amountReceived.amount); setVal('amountDate', formatDate(item.amountReceived.date));
+        setVal('paymentMode', item.amountReceived.paymentMode); setVal('chequeDd', item.amountReceived.chequeDd); setVal('bankName', item.amountReceived.bankName);
+    }
+    if (item.product) {
+        const pid = item.product._id || item.product.id || item.product;
+        const radio = document.querySelector(`input[name="gicProduct"][value="${pid}"]`);
+        if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change')); }
+    }
+}
+
+document.addEventListener('click', (e) => { if (e.target !== searchInput) searchResults.innerHTML = ''; });
+
+/* =================== SAVE GIC RECORD =================== */
+async function saveGIC() {
+    const btn = document.querySelector('button[onclick="saveGIC()"]');
+    if(btn) { btn.innerText = "⏳ Saving..."; btn.disabled = true; }
+
+    try {
+        const data = collectGICData();
+        
+        // 1. Check Required Fields
+        if (!data.policyNo) throw new Error("Policy No is required");
+        if (!data.vehicleNo) throw new Error("Vehicle No is required");
+
+        // 🛑 NEW UPDATE: STOP SAVING IF FORMAT IS INVALID
+        // Agar value "NEW" nahi hai, to Regex check karo
+        if (data.vehicleNo !== "NEW") {
+            // Regex for Standard, Bharat Series (BH), Embassy (CD/UN)
+            const regex = /^([A-Z]{2}\d{1,2}[A-Z]{0,3}\d{4})|(\d{2}BH\d{4}[A-Z]{1,2})|(\d{1,3}(C[D|C]|UN)\d{1,4})$/;
+            
+            if (!regex.test(data.vehicleNo)) {
+                // Agar format galat hai to yahi rok do
+                throw new Error("Invalid Vehicle Format! Use correct format or 'NEW'");
+            }
+        }
+
+        // 2. API Call
+        const response = await fetch(`${API_BASE}/api/gic/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        const result = await response.json();
+        
+        if(!response.ok) { 
+            showToast("Failed: " + (result.error || result.message), "error"); 
+            if(btn) btn.innerText = "❌ Failed"; 
+        } 
+        else { 
+            showToast("Record Saved Successfully!", "success"); 
+            loadRecentGIC(); 
+            if(btn) btn.innerText = "✅ Saved!"; 
+        }
+
+    } catch (err) { 
+        showToast("Error: " + err.message, "error"); 
+        if(btn) btn.innerText = "⚠️ Error"; 
+    } 
+    finally { 
+        setTimeout(() => { if(btn) { btn.innerText = "✅ Save GIC Transaction"; btn.disabled = false; } }, 3000); 
+    }
+}
+/* =================== LOAD RECENT GIC RECORDS =================== */ 
+async function loadRecentGIC() {
+    const tbody = document.getElementById('recentGicTableBody');
+    // Button par visual cue (sirf dikhane ke liye ki refresh ho raha hai)
+    const btn = document.getElementById('btnRefresh');
+    if(btn) { 
+        const originalText = btn.innerText;
+        if(originalText !== "🔄 ...") {
+            btn.innerText = "🔄 ...";
+            setTimeout(() => btn.innerText = "🔄 Refresh", 500); 
+        }
+    }
+
+    if (!tbody) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/gic/recent-gic`);
+        const result = await res.json();
+
+        tbody.innerHTML = '';
+
+        if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+            result.data.forEach((item, index) => {
+
+                // ===== SAFE PRODUCT NAME LOGIC =====
+                let productName = '-';
+                if (item.gicProduct && item.gicProduct !== '-') {
+                    productName = item.gicProduct;
+                }
+                else if (item.product && typeof item.product === 'object' && item.product.name) {
+                    productName = item.product.name;
+                }
+                else if (typeof item.product === 'string') {
+                    // Agar string ID hai aur gicProduct empty hai
+                    productName = 'Product Saved';
+                }
+
+                // Date Formatting
+                const issueDate = item.policyIssueDate
+                    ? new Date(item.policyIssueDate).toLocaleDateString('en-IN')
+                    : '-';
+
+                // Customer Name Safely
+                const custName = item.customer
+                    ? (item.customer.name || 'Unknown')
+                    : 'N/A';
+
+                // ✅ FIX HERE: 'item.od' ki jagah 'item.odPremium' use karein
+                // loadRecentGIC function ke loop ke andar ise replace karein
+                const odDisplay = item.odPremium || 0; // Backend schema se data lena
+
+const row = `
+<tr style="border-bottom:1px solid #eee;">
+    <td style="padding:8px;">${index + 1}</td>
+    <td style="padding:8px; font-weight:500;">${item.policyNo || '-'}</td>
+    <td style="padding:8px;">${custName}</td>
+    <td style="padding:8px;">${item.vehicleNo || '-'}</td>
+    <td style="padding:8px;">${item.partner ? item.partner.name : '-'}</td>
+    <td style="padding:8px;">${item.dealerName || '-'}</td>
+    <td style="padding:8px; color:#d35400; font-weight:600;">${productName}</td>
+    
+    <td style="padding:8px;" class="col-money">₹${odDisplay.toFixed(2)}</td>
+    
+    <td style="padding:8px; color:green;" class="col-money">₹${(item.premium || 0).toFixed(2)}</td>
+    <td style="padding:8px;">${issueDate}</td>
+    <td style="padding:8px;">
+        <button onclick="selectRecord('${item._id || item.id}')" style="cursor:pointer; border:none; background:none; color:blue;">✏️</button>
+        <button onclick="deleteEntry('${item._id || item.id}')" style="cursor:pointer; border:none; background:none; color:red;">🗑️</button>
+    </td>
+</tr>`;
+                tbody.innerHTML += row;
+            });
+        } else {
+            tbody.innerHTML = `
+            <tr>
+                <td colspan="11" style="text-align:center; padding:15px; color:#666;">
+                    No recent records found.
+                </td>
+            </tr>`;
+        }
+    } catch (err) {
+        console.error("Error loading recent GIC:", err);
+        // Silent fail on auto refresh avoids console spam if needed, but keeping text for debug
+        tbody.innerHTML = `
+        <tr>
+            <td colspan="11" style="text-align:center; padding:15px; color:red;">
+                Error loading data
+            </td>
+        </tr>`;
+    }
+}
+
+async function deleteEntry(id) {
+    if(!confirm("Delete this record?")) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/gic/delete-gic/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if(data.success) { showToast("Record Deleted", "success"); loadRecentGIC(); } else { showToast("Delete Failed", "error"); }
+    } catch(err) { showToast("Error deleting record", "error"); }
+}
+
+/* =================== INIT =================== */
+async function initGIC() {
+    await Promise.allSettled([
+        loadPartners(), fetchAllVehicles(), fetchGicProducts(),
+        loadCoverageTypes(), loadFuel(), loadInsuranceYears(),
+        loadInsuranceCompanies(), loadDealers(), loadPYPInsCompanies(),
+        loadPaymentModes(), loadBankNames(), loadRecentGIC()
+    ]);
+    // Apply Defaults on Init
+    el('insuranceYear').value = getCurrentFY();
+    setupDateLogic();
+
+    // 🚀 NEW LOGIC: Auto Refresh every 5 Seconds
+    // Page reload nahi hoga, bas table refresh hoga (AJAX)
+    setInterval(() => {
+        loadRecentGIC();
+    }, 5000); 
+}
+
+document.addEventListener('DOMContentLoaded', initGIC);
+
+/* =========================================================
+   🚀 STEP 2: FIXED SMART DEALER SUGGESTION (OD START DATE LOGIC)
+   ========================================================= */
+
+const dealerInputRef = document.getElementById('dealerName');
+let cachedDealerData = []; 
+
+const dealerListDiv = document.createElement('div');
+dealerListDiv.className = 'smart-suggestion-box';
+dealerInputRef.parentNode.style.position = 'relative'; 
+dealerInputRef.parentNode.appendChild(dealerListDiv);
+
+function renderDealerSuggestions(filterText = "") {
+    // 1. Get Selected Product Name (Radio Button logic)
+    const selectedProdRadio = document.querySelector('input[name="gicProduct"]:checked');
+    if (!selectedProdRadio) {
+        dealerListDiv.innerHTML = `<div class="no-record">⚠️ Pehle GIC Product select karein</div>`;
+        return;
+    }
+    const productName = selectedProdRadio.nextElementSibling.innerText.trim();
+
+    // 2. GET OD START DATE (ID Badalkar odStartDate kar di gayi hai)
+    const odStartDateVal = document.getElementById('odStartDate').value; 
+    if (!odStartDateVal) {
+        dealerListDiv.innerHTML = `<div class="no-record">⚠️ Pehle OD Start Date select karein</div>`;
+        return;
+    }
+    const policyDate = new Date(odStartDateVal);
+
+    dealerListDiv.innerHTML = '';
+    let matchFound = false;
+    const uniqueSet = new Set();
+
+    // --- LOGIC: FIND RECENT SAVED DATA BEFORE OD START ---
+
+    // A. Filter records: Jo OD Start Date se purane ya barabar (<=) hain
+    let historicalRecords = cachedDealerData.filter(record => {
+        const recordDate = new Date(record.date || record.Date);
+        return recordDate <= policyDate;
+    });
+
+    if (historicalRecords.length === 0) {
+        dealerListDiv.innerHTML = `<div class="no-record">❌ Is OD Start Date se pehle ka koi payout saved nahi hai</div>`;
+        return;
+    }
+
+    // B. Sabse Recent (Latest) Date nikaalein
+    // Records ko date ke hisab se sort karein (Latest first)
+    historicalRecords.sort((a, b) => new Date(b.date || b.Date) - new Date(a.date || a.Date));
+    
+    // Sabse taaza valid date uthayein (Index 0)
+    const mostRecentDate = new Date(historicalRecords[0].date || historicalRecords[0].Date).getTime();
+
+    // C. Sirf wahi records filter karein jo us Most Recent date ke hain
+    const effectiveRecords = historicalRecords.filter(r => 
+        new Date(r.date || r.Date).getTime() === mostRecentDate
+    );
+
+    // --- STEP 3: Render Suggestions (Product + Search Filter) ---
+    effectiveRecords.forEach(dealerRecord => {
+        if (dealerRecord.breakdownItems) {
+            dealerRecord.breakdownItems.forEach(item => {
+                const dName = dealerRecord.dealer || dealerRecord.dealerName || "";
+                
+                // Match Product + User Search Text
+                const isProductMatch = (item.product || '').toLowerCase().trim() === productName.toLowerCase().trim();
+                const isSearchMatch = item.company.toLowerCase().includes(filterText.toLowerCase()) || 
+                                     dName.toLowerCase().includes(filterText.toLowerCase());
+
+                if (isProductMatch && isSearchMatch) {
+                    const uniqueKey = `${dName}-${item.company}`;
+                    if (!uniqueSet.has(uniqueKey)) {
+                        uniqueSet.add(uniqueKey);
+                        matchFound = true;
+
+                        const div = document.createElement('div');
+                        div.className = 'smart-suggestion-item';
+                        div.style.padding = '8px';
+                        div.style.borderBottom = '1px solid #eee';
+                        div.style.cursor = 'pointer';
+
+                        div.innerHTML = `
+                            <div style="display:flex; justify-content:space-between;">
+                                <b>${dName}</b>
+                                <span style="color:#007bff; font-size:11px;">${item.company}</span>
+                            </div>
+                            <div style="font-size:10px; color:#888;">Rule Active From: ${new Date(mostRecentDate).toLocaleDateString('en-GB')}</div>
+                        `;
+
+                        div.onmousedown = (e) => {
+                            e.preventDefault(); 
+                            document.getElementById('dealerName').value = dName;
+                            document.getElementById('insCompany').value = item.company;
+                            dealerListDiv.style.display = 'none';
+                            showToast(`✅ Linked: ${dName}`, "success");
+                        };
+                        dealerListDiv.appendChild(div);
+                    }
+                }
+            });
+        }
+    });
+
+    if (!matchFound) {
+        dealerListDiv.innerHTML = `<div class="no-record">❌ No match for "${filterText}" in ${productName} for this date</div>`;
+    }
+}
+
+// ---------------------------------------------------------
+// Focus Event par Data Fetching logic (Same as GIC)
+// ---------------------------------------------------------
+dealerInputRef.addEventListener('focus', async () => {
+    const selectedProdRadio = document.querySelector('input[name="gicProduct"]:checked');
+    if (!selectedProdRadio) {
+        showToast("⚠️ Pehle GIC Product select karein", "warning");
+        dealerInputRef.blur();
+        return;
+    }
+    dealerListDiv.style.display = 'block';
+    if (cachedDealerData.length === 0) {
+        dealerListDiv.innerHTML = '<div style="padding:10px; text-align:center;">🔄 Loading Payouts...</div>';
+        try {
+            const res = await fetch(`${API_BASE}/api/expenses/dealer/list`);
+            const json = await res.json();
+            if (json.success) {
+                cachedDealerData = json.data;
+                renderDealerSuggestions(dealerInputRef.value);
+            }
+        } catch (err) {
+            dealerListDiv.innerHTML = '<div class="no-record">Error connecting to server</div>';
+        }
+    } else {
+        renderDealerSuggestions(dealerInputRef.value);
+    }
+});
+
+// Typing Event
+dealerInputRef.addEventListener('input', (e) => {
+    dealerListDiv.style.display = 'block';
+    renderDealerSuggestions(e.target.value);
+});
+
+// Blur Event
+dealerInputRef.addEventListener('blur', () => {
+    setTimeout(() => { dealerListDiv.style.display = 'none'; }, 200);
+});
+</script>
+
+</body>
+</html>

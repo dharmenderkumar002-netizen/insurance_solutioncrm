@@ -1,0 +1,8 @@
+{
+    "general": {
+        "previewFeatures": true
+    },
+    "chat.tools.terminal.autoApprove": {
+        "npm update": true
+    }
+}

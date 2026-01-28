@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Add Vehicle Master</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f9;
+        padding: 20px;
+    }
+
+    h2 {
+        margin-bottom: 15px;
+    }
+
+    .form-box, .table-box {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        max-width: 900px;
+        margin-bottom: 25px;
+    }
+
+    /* ===== 2 COLUMN GRID ===== */
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .full {
+        grid-column: span 2;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+    }
+
+    .btn-row {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn {
+        padding: 10px 18px;
+        background: #013859;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .btn-new {
+        background: #ff9800;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
+        text-align: center;
+        font-size: 14px;
+    }
+
+    .edit-btn {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .delete-btn {
+        background: #d9534f;
+        color: white;
+        border: none;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+</style>
+</head>
+
+<body>
+
+<h2>Add Vehicle Master</h2>
+
+<!-- ================= FORM ================= -->
+<div class="form-box">
+
+    <div class="form-grid">
+
+        <div>
+            <label>S.No *</label>
+            <input id="sno" readonly>
+        </div>
+
+        <div>
+            <label>Status *</label>
+            <select id="status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+        </div>
+
+        <div class="full">
+            <label>GIC Product *</label>
+            <select id="gicProduct">
+                <option value="">Loading Products...</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Make *</label>
+            <input id="make" type="text" placeholder="e.g. Maruti">
+        </div>
+
+        <div>
+            <label>Model *</label>
+            <input id="model" type="text" placeholder="e.g. Swift">
+        </div>
+
+        <div class="full">
+            <label>Date</label>
+            <input id="date" readonly>
+        </div>
+
+    </div>
+
+    <div class="btn-row">
+        <button class="btn" onclick="save()">Save</button>
+        <button class="btn btn-new" onclick="resetForm()">Add New</button>
+    </div>
+
+</div>
+
+<!-- ================= TABLE ================= -->
+<div class="table-box">
+    <h3>Vehicle Records</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>S.No</th>
+                <th>GIC Product</th>
+                <th>Make</th>
+                <th>Model</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+</div>
+
+<script>
+const TYPE = "vehicle";
+const API = `/api/master/item/${TYPE}`;
+const GIC_API = "/api/master/item/gicproduct";
+
+let editId = null;
+let gicProducts = [];
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadDate();
+    loadSno();
+    loadGicProducts();
+    loadList();
+});
+
+function loadDate() {
+    document.getElementById("date").value =
+        new Date().toISOString().split("T")[0];
+}
+
+async function loadSno() {
+    try {
+        const res = await fetch(API);
+        const json = await res.json();
+        document.getElementById("sno").value =
+            json.success ? json.data.length + 1 : 1;
+    } catch {
+        document.getElementById("sno").value = 1;
+    }
+}
+
+function resetForm() {
+    editId = null;
+    document.getElementById("gicProduct").value = "";
+    document.getElementById("make").value = "";
+    document.getElementById("model").value = "";
+    document.getElementById("status").value = "Active";
+    loadDate();
+    loadSno();
+}
+
+async function loadGicProducts() {
+    const sel = document.getElementById("gicProduct");
+    sel.innerHTML = "<option>Loading...</option>";
+
+    const res = await fetch(GIC_API);
+    const json = await res.json();
+    gicProducts = json.data || [];
+
+    sel.innerHTML = `<option value="">-- Select GIC Product --</option>`;
+    gicProducts
+        .filter(p => p.status === "Active")
+        .forEach(p => {
+            const op = document.createElement("option");
+            op.value = p._id;
+            op.textContent = p.name;
+            sel.appendChild(op);
+        });
+}
+
+async function save() {
+    const gicId = document.getElementById("gicProduct").value;
+    const make = document.getElementById("make").value.trim();
+    const model = document.getElementById("model").value.trim();
+
+    if (!gicId || !make || !model) {
+        alert("All fields are required");
+        return;
+    }
+
+    const gic = gicProducts.find(p => p._id === gicId);
+
+    const payload = {
+        name: `${gic.name} - ${make} ${model}`,
+        meta: {
+            gicProductId: gicId,
+            gicProductName: gic.name,
+            make,
+            model
+        },
+        status: document.getElementById("status").value,
+        date: document.getElementById("date").value
+    };
+
+    const method = editId ? "PUT" : "POST";
+    const url = editId ? `${API}/${editId}` : API;
+
+    const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    const json = await res.json();
+
+    if (json.success) {
+        alert("Saved successfully");
+        resetForm();
+        loadList();
+    } else {
+        alert(json.message || "Save failed");
+    }
+}
+
+async function loadList() {
+    const res = await fetch(API);
+    const json = await res.json();
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = "";
+
+    if (!json.success) return;
+
+    json.data.forEach(item => {
+        const m = item.meta || {};
+        tbody.innerHTML += `
+            <tr>
+                <td>${item.s_no}</td>
+                <td>${m.gicProductName || "-"}</td>
+                <td>${m.make || "-"}</td>
+                <td>${m.model || "-"}</td>
+                <td>${item.status}</td>
+                <td>${item.date}</td>
+                <td>
+                    <button class="edit-btn" onclick="editItem('${item._id}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteItem('${item._id}')">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+async function editItem(id) {
+    const res = await fetch(API);
+    const json = await res.json();
+    const item = json.data.find(x => x._id === id);
+    if (!item) return;
+
+    editId = id;
+    document.getElementById("sno").value = item.s_no;
+    document.getElementById("gicProduct").value = item.meta.gicProductId;
+    document.getElementById("make").value = item.meta.make;
+    document.getElementById("model").value = item.meta.model;
+    document.getElementById("status").value = item.status;
+    document.getElementById("date").value = item.date;
+}
+
+async function deleteItem(id) {
+    if (!confirm("Delete this vehicle?")) return;
+    await fetch(`${API}/${id}`, { method: "DELETE" });
+    loadList();
+    loadSno();
+}
+</script>
+
+</body>
+</html>

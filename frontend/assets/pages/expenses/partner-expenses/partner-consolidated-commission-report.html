@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Partner Master Commission Report (All Segments)</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/assets/css/gic.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f4f6f9; padding: 20px; }
+        .filter-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; gap: 15px; align-items: flex-end; }
+        .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; }
+        .form-group input, .form-group select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px; }
+        .btn-master { background: #4b0082; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-master:hover { background: #3a006f; }
+        .status-box { margin-top: 20px; padding: 15px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px; display: none; }
+    </style>
+</head>
+<body>
+
+    <h2>📊 Partner Master Commission Report (GIC + Health + LIC + Non-Motor)</h2>
+
+    <div class="filter-card">
+        <div class="form-group">
+            <label>Select Partner</label>
+            <select id="f_partner"><option value="">-- All Partners --</option></select>
+        </div>
+        <div class="form-group">
+            <label>From Date</label>
+            <input type="date" id="f_from">
+        </div>
+        <div class="form-group">
+            <label>To Date</label>
+            <input type="date" id="f_to">
+        </div>
+        <button class="btn-master" onclick="generateMasterExcel()">
+            <i class="fas fa-file-excel"></i> Download Combined Excel
+        </button>
+    </div>
+
+    <div id="statusBox" class="status-box"></div>
+
+<script>
+    const API_BASE = "http://localhost:4000";
+
+    // 1. Load Partners
+    fetch(`${API_BASE}/api/master/partner`).then(r=>r.json()).then(res => {
+        const sel = document.getElementById('f_partner');
+        (res.data || []).forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.name; opt.innerText = d.name;
+            sel.appendChild(opt);
+        });
+    });
+
+    async function generateMasterExcel() {
+        const partner = document.getElementById('f_partner').value;
+        const from = document.getElementById('f_from').value;
+        const to = document.getElementById('f_to').value;
+        const statusDiv = document.getElementById('statusBox');
+
+        statusDiv.style.display = 'block';
+        statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching data from all departments...';
+
+        try {
+            const payload = { partner, fromDate: from, toDate: to };
+
+            // 2. Fetch Data from ALL 4 Endpoints in Parallel
+            // Note: Backend par ye route hone chahiye
+            const [gicRes, healthRes, licRes, nonMotorRes] = await Promise.all([
+                fetch(`${API_BASE}/api/expenses/report/partnergic`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }),
+                fetch(`${API_BASE}/api/expenses/report/partnerhealth`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }),
+                fetch(`${API_BASE}/api/expenses/report/partnerlic`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }), // Future
+                fetch(`${API_BASE}/api/expenses/report/partnernonmotor`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) }) // Future
+            ]);
+
+            const gicData = (await gicRes.json()).data || [];
+            const healthData = (await healthRes.json()).data || [];
+            // Agar API nahi bani hai to empty array maan lo
+            const licData = licRes.ok ? ((await licRes.json()).data || []) : []; 
+            const nonMotorData = nonMotorRes.ok ? ((await nonMotorRes.json()).data || []) : [];
+
+            statusDiv.innerHTML = `✅ Data Loaded: GIC (${gicData.length}), Health (${healthData.length}), LIC (${licData.length}), Non-Motor (${nonMotorData.length}). Generating Excel...`;
+
+            // 3. Normalize Data (Sabko ek format me lana)
+            const masterList = [];
+
+            // Helper to clean data
+            const clean = (d, type) => ({
+                Type: type,
+                Date: d.policyDate ? new Date(d.policyDate).toLocaleDateString('en-GB') : '-',
+                Partner: d.partnerName,
+                Customer: d.customerName,
+                PolicyNo: d.policyNo,
+                Product: d.product || d.gicProduct || d.planName || '-', // Field names differ
+                Company: d.insCompany,
+                Vehicle_Reg_No: d.vehicleNo || 'N/A', // Only for GIC
+                Sum_Assured_IDV: d.sumAssured || d.idv || 0,
+                Net_Premium: parseFloat(d.netPremium || 0),
+                OD_Premium: parseFloat(d.odPremium || 0), // Only GIC
+                Comm_Percent: d.commPercent || 0,
+                Comm_Amount: parseFloat(d.commAmt || 0)
+            });
+
+            // Combine all
+            gicData.forEach(d => masterList.push(clean(d, 'MOTOR (GIC)')));
+            healthData.forEach(d => masterList.push(clean(d, 'HEALTH')));
+            licData.forEach(d => masterList.push(clean(d, 'LIC')));
+            nonMotorData.forEach(d => masterList.push(clean(d, 'NON-MOTOR')));
+
+            if(masterList.length === 0) { alert("No data found!"); return; }
+
+            // 4. Generate Excel using SheetJS
+            const ws = XLSX.utils.json_to_sheet(masterList);
+            
+            // Auto Width
+            const wscols = Object.keys(masterList[0]).map(k => ({wch: 20}));
+            ws['!cols'] = wscols;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Consolidated Report");
+            
+            XLSX.writeFile(wb, `Partner_Master_Commission_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+            
+            statusDiv.innerHTML += "<br><b>Download Started!</b>";
+
+        } catch (err) {
+            console.error(err);
+            statusDiv.innerHTML = `<span style="color:red">Error: ${err.message}</span>`;
+        }
+    }
+</script>
+</body>
+</html>

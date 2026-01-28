@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    // Redirect to main layout if not in an iframe.
+    // This prevents direct access to the page.
+    if (window.self === window.top) {
+        // The path to layout.html from this page.
+        window.location.href = '../../layout.html';
+    }
+</script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Commission Management (Dealer & Partners)</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; padding: 20px; margin: 0; }
+        .crm-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; }
+        
+        /* TABLE STYLES */
+        .crm-table { width: 100%; border-collapse: collapse; margin-top: 10px; border: 1px solid #eee; }
+        .crm-table thead th { 
+            background: #f8f9fa; color: #333; font-weight: 600; padding: 12px; 
+            text-align: left; border-bottom: 2px solid #eee; font-size: 12px; 
+            text-transform: uppercase; letter-spacing: 0.5px; 
+        }
+        .crm-table tbody td { 
+            padding: 10px 12px; border-bottom: 1px solid #eee; color: #555; 
+            font-size: 13px; vertical-align: middle; 
+        }
+        .crm-table tbody tr:hover { background-color: #f9fbfd; }
+
+        /* ICONS & BUTTONS */
+        .icon-action-group { display: flex; gap: 15px; align-items: center; justify-content: flex-start; }
+        .btn-icon-manage, .btn-icon-report { cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .btn-icon-manage:hover, .btn-icon-report:hover { transform: scale(1.15); }
+
+        .gic-color { color: #337ab7; }      /* Blue Car */
+        .health-color { color: #00a65a; }   /* Green Heart */
+        .nonmotor-color { color: #605ca8; } /* Purple Ship */
+        .lic-color { color: #f39c12; }      /* Orange Umbrella */
+        .btn-icon-report { color: #337ab7; } 
+
+        /* Commission Views */
+        #commissionSection { display: none; border-top: 3px solid #337ab7; }
+        
+        .controls-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
+        .search-box input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; outline: none; width: 250px; }
+        .input-date-custom { background-color: #fff; border: 1px solid #ccc; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+        /* Type Selector */
+        .type-select { padding: 8px 12px; border: 2px solid #337ab7; border-radius: 4px; color: #337ab7; font-weight: 600; outline: none; cursor: pointer; }
+
+        /* Action Buttons */
+        .btn-reset { background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .btn-create { color:#fff; background-color:#28a745; font-weight:500; text-decoration:none; display:inline-flex; align-items:center; gap:5px; padding: 6px 15px; border-radius: 4px; font-size:13px; border: none; cursor: pointer; }
+        
+        .btn-edit { background:#fff; border:1px solid #337ab7; color:#337ab7; padding:5px 12px; border-radius:4px; cursor:pointer; margin-right:5px; font-size: 12px; transition:0.2s; }
+        .btn-edit:hover { background: #eef7ff; }
+
+        .btn-delete { background:#fff; border:1px solid #d9534f; color:#d9534f; padding:5px 12px; border-radius:4px; cursor:pointer; font-size: 12px; transition:0.2s; }
+        .btn-delete:hover { background: #fff5f5; }
+
+        .tab-content-wrapper { border: 1px solid #ddd; background: #fff; padding: 20px; border-radius: 4px; margin-top: 15px; }
+        .header-GIC { border-left: 5px solid #337ab7; }
+        .header-HEALTH { border-left: 5px solid #00a65a; }
+        .header-NONMOTOR { border-left: 5px solid #605ca8; }
+        .header-LIC { border-left: 5px solid #f39c12; }
+
+        /* Modal & Toast */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 350px; padding: 25px; border-radius: 8px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+        .toast { background: #333; color: white; padding: 12px 20px; margin-bottom: 10px; border-radius: 4px; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="page-content">
+    
+    <div id="dealerListSection">
+        <h2 style="color:#444; margin-bottom:15px;">Set expenses for <span id="entityTypeHeader">Dealers</span></h2>
+        <div class="crm-card">
+            <div class="controls-row">
+                <div style="display:flex; gap: 10px; align-items: center;">
+                    <select id="entityTypeSelect" class="type-select" onchange="fetchEntities()">
+                        <option value="dealer">Ins Sol (Dealers)</option>
+                        <option value="partner">PB / Others (Partners)</option>
+                    </select>
+
+                    <select id="rowsPerPage" onchange="renderEntityTable()" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="10">10 records</option>
+                        <option value="25">25 records</option>
+                        <option value="50">50 records</option>
+                    </select>
+                </div>
+
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search Name..." onkeyup="filterEntities()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="crm-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">S.No.</th>
+                            <th style="width: 90px;">GIC</th>
+                            <th style="width: 90px;">HEALTH</th>
+                            <th style="width: 90px;">NONMOTOR</th>
+                            <th style="width: 90px;">LIC</th>
+                            <th>ENTITY NAME</th>
+                            <th>PHONE</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dealerTableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="controls-row" style="margin-top:15px; font-size:13px; color:#666;">
+                <div id="showingInfo">Showing 0 entries</div>
+                <div>
+                    <button onclick="changePage(-1)" style="cursor:pointer; padding:5px 12px; border:1px solid #ccc; background:#fff; border-radius:4px;">Prev</button>
+                    <button onclick="changePage(1)" style="cursor:pointer; padding:5px 12px; border:1px solid #ccc; background:#fff; border-radius:4px;">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="commissionSection">
+        <div class="crm-card">
+            <div class="controls-row" style="margin-bottom: 10px;">
+                <div>
+                    <h2 id="commissionHeader" style="margin:0; color: #337ab7;">Manage Commission</h2>
+                    <div id="subHeaderBadge" style="font-size:13px; color:#777; margin-top:5px;"></div>
+                </div>
+                <button class="btn-reset" onclick="hideCommission()">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </button>
+            </div>
+            
+            <div class="tab-content-wrapper" id="contentWrapper">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                    <h3 id="currentTabTitle" style="margin:0; font-size:16px; font-weight:600; color:#555;">Payout Entries</h3>
+                </div>
+
+                <table class="crm-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">S.No.</th>
+                            <th>Commission Effective Date</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesBody">
+                        <tr style="background-color: #f8f9fa;">
+                            <td>#</td>
+                            <td>
+                                <input type="date" id="newDateInput" class="input-date-custom">
+                                <span style="font-size:12px; color:#666; margin-left:10px;">Select a date to create new</span>
+                            </td>
+                            <td style="text-align: right;">
+                                <button onclick="createNewDate()" class="btn-create">
+                                    <i class="fas fa-plus"></i> Create Entry
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="commShowingText" style="margin-top:20px; color:#999; font-size:14px; text-align:center; font-style: italic;">Loading...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal-content">
+        <div style="font-size: 40px; color: #ffc107; margin-bottom: 15px;"><i class="fas fa-exclamation-circle"></i></div>
+        <h3 id="deleteModalTitle" style="margin: 0 0 10px 0; color:#333;">Are you sure?</h3>
+        <p style="font-size: 14px; color: #666; line-height:1.5;">Do you really want to delete this payout entry?<br>This process cannot be undone.</p>
+        <div style="margin-top: 25px; display: flex; justify-content: center; gap: 10px;">
+            <button onclick="closeDeleteModal()" style="padding:10px 20px; background:#e2e6ea; color:#333; border:none; border-radius:4px; cursor:pointer; font-weight:500;">Cancel</button>
+            <button id="btnFinalDelete" style="padding:10px 20px; background:#d9534f; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:500;">Delete</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- CONFIGURATION ---
+    // Use a relative path for the API base. This works for both local and production.
+    // Assumes frontend and backend are on the same domain.
+const API_BASE = "";
+let allEntities = []; 
+let currentPage = 1;
+let rowsPerPage = 10;
+let entityType = 'dealer'; // Default
+
+// Commission State
+let currentEntityId = null;
+let currentEntityName = "";
+let currentType = 'GIC'; 
+let loadedDates = [];
+let dateToDelete = null;
+
+function getTypeConfig(entityType) {
+    const dealerConfig = {
+        'GIC': { 
+            color: '#337ab7', headerClass: 'header-GIC', 
+            listApi: '/api/expenses/dealer/list', 
+            deleteApi: '/api/expenses/delete-entry', 
+            breakdownPage: 'dealer-gic-commission-breakdown.html', 
+            reportPage: 'dealer-gic-commission-report.html' 
+        },
+        'HEALTH': { 
+            color: '#00a65a', headerClass: 'header-HEALTH', 
+            listApi: '/api/expenses/health/dealer/list', 
+            deleteApi: '/api/expenses/health/delete-entry', 
+            breakdownPage: 'dealer-health-commission-breakdown.html', 
+            reportPage: 'dealer-health-commission-report.html' 
+        },
+        'NONMOTOR': { 
+            color: '#605ca8', headerClass: 'header-NONMOTOR', 
+            listApi: '/api/expenses/nonmotor/dealer/list', 
+            deleteApi: '/api/expenses/nonmotor/delete-entry', 
+            breakdownPage: 'dealer-nonmotor-commission-breakdown.html', 
+            reportPage: 'dealer-nonmotor-commission-report.html' 
+        },
+        'LIC': { 
+            color: '#f39c12', headerClass: 'header-LIC', 
+            listApi: '/api/expenses/lic/dealer/list', 
+            deleteApi: '/api/expenses/lic/delete-entry', 
+            breakdownPage: 'dealer-lic-commission-breakdown.html', 
+            reportPage: 'dealer-lic-commission-report.html' 
+        }
+    };
+
+    const partnerConfig = {
+        'GIC': {
+            color: '#337ab7', headerClass: 'header-GIC',
+            listApi: '/api/partner-gic-commission', 
+            deleteApi: '/api/partner-gic-commission/delete',
+            breakdownPage: '../partner-expenses/partner-gic-commission-breakdown.html',
+            reportPage: '../partner-expenses/partner-gic-commission-report.html'
+        },
+        'HEALTH': {
+            color: '#00a65a', headerClass: 'header-HEALTH',
+            listApi: '/api/partner-health-commission',
+            deleteApi: '/api/partner-health-commission/delete',
+            breakdownPage: '../partner-expenses/partner-health-commission-report.html', // Corrected path
+            reportPage: '../partner-expenses/partner-health-commission-report.html'
+        },
+        'LIC': {
+            color: '#f39c12', headerClass: 'header-LIC',
+            listApi: '/api/partner-lic-commission',
+            deleteApi: '/api/partner-lic-commission/delete',
+            breakdownPage: '../partner-expenses/partner-lic-commission-breakdown.html',
+            reportPage: '../partner-expenses/partner-lic-commission-report.html'
+        },
+        'NONMOTOR': {
+            color: '#605ca8', headerClass: 'header-NONMOTOR',
+            listApi: '/api/partner-nonmotor-commission',
+            deleteApi: '/api/partner-nonmotor-commission/delete',
+            breakdownPage: '../partner-expenses/partner-nonmotor-commission-report.html', // Corrected path
+            reportPage: '../partner-expenses/partner-nonmotor-commission-report.html'
+        }
+    };
+
+    return entityType === 'partner' ? partnerConfig : dealerConfig;
+}
+
+
+// --- UTILS ---
+function showToast(msg, type='success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    const icon = type === 'error' ? 'fa-times-circle' : 'fa-check-circle';
+    toast.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
+    toast.style.backgroundColor = type === 'error' ? '#d9534f' : '#333';
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function formatDisplayDate(dateStr) {
+
+    if (!dateStr) return "--";
+
+    let str = String(dateStr).trim();
+
+    if (str.includes("T")) str = str.split("T")[0];
+
+    
+
+    // MODIFIED: Enhanced check to handle 8-digit dates (DDMMYYYY or YYYYMMDD)
+
+    if (/^\d{8}$/.test(str)) {
+
+        // If starts with 20 or 19, assume YYYYMMDD -> DD-MM-YYYY
+
+        if (str.startsWith("20") || str.startsWith("19")) {
+
+            return `${str.substring(6,8)}-${str.substring(4,6)}-${str.substring(0,4)}`;
+
+        } 
+
+        // Otherwise assume DDMMYYYY (like LIC) -> DD-MM-YYYY
+
+        else {
+
+            return `${str.substring(0,2)}-${str.substring(2,4)}-${str.substring(4,8)}`;
+
+        }
+
+    }
+
+
+
+    if (str.includes("-")) {
+
+        const parts = str.split("-");
+
+        if(parts[0].length === 4) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+
+    }
+
+    return str;
+
+}
+
+function normalizeDateForLink(dateStr) {
+    if (!dateStr) return "";
+    let str = String(dateStr).trim();
+    if (str.includes("T")) str = str.split("T")[0];
+    return str.replace(/-/g, "");
+}
+
+// --- 2. ENTITY LIST LOGIC (Dealer / Partner) ---
+async function fetchEntities() {
+    entityType = document.getElementById('entityTypeSelect').value;
+    let endpoint = (entityType === 'dealer') ? `${API_BASE}/api/master/dealer` : `${API_BASE}/api/master/partner`;
+    document.getElementById('entityTypeHeader').innerText = (entityType === 'dealer') ? "Dealers (Ins Sol)" : "Partners (PB/Other)";
+
+    try {
+        const res = await fetch(endpoint);
+        const json = await res.json();
+        allEntities = json.data || json;
+        currentPage = 1;
+        renderEntityTable();
+    } catch (err) {
+        showToast(`Error fetching list`, "error");
+    }
+}
+
+function renderEntityTable() {
+    const tbody = document.getElementById('dealerTableBody');
+    const searchVal = document.getElementById('searchInput').value.toLowerCase();
+    rowsPerPage = parseInt(document.getElementById('rowsPerPage').value);
+    
+    const filtered = allEntities.filter(d => (d.name || '').toLowerCase().includes(searchVal));
+    const startIdx = (currentPage - 1) * rowsPerPage;
+    const pageData = filtered.slice(startIdx, startIdx + rowsPerPage);
+
+    tbody.innerHTML = '';
+    
+    if(pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 30px; color:#999;">No records found</td></tr>`;
+        document.getElementById('showingInfo').innerText = "Showing 0 entries";
+        return;
+    }
+
+    pageData.forEach((item, index) => {
+        const id = item._id || item.id;
+        const safeName = (item.name || '').replace(/'/g, "\\'");
+        
+        const getIconPair = (type, iconClass, colorClass) => `
+            <div class="icon-action-group">
+                <i class="fas ${iconClass} btn-icon-manage ${colorClass}" 
+                   title="Manage ${type} Expenses" 
+                   onclick="openExpenseManager('${id}', '${safeName}', '${type}')"></i>
+                   
+                <i class="fas fa-chart-line btn-icon-report" 
+                   title="View ${type} Report" 
+                   onclick="openReport('${id}', '${safeName}', '${type}')"></i>
+            </div>
+        `;
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${startIdx + index + 1}</td>
+                <td>${getIconPair('GIC', 'fa-car', 'gic-color')}</td>
+                <td>${getIconPair('HEALTH', 'fa-heartbeat', 'health-color')}</td>
+                <td>${getIconPair('NONMOTOR', 'fa-ship', 'nonmotor-color')}</td>
+                <td>${getIconPair('LIC', 'fa-umbrella', 'lic-color')}</td>
+                <td style="font-weight:600; color:#333;">${item.name || '-'}</td>
+                <td>${item.mobile || '-'}</td>
+                <td><span class="badge">Active</span></td>
+            </tr>
+        `;
+    });
+    document.getElementById('showingInfo').innerText = `Showing ${startIdx + 1} to ${Math.min(startIdx + rowsPerPage, filtered.length)} of ${filtered.length}`;
+}
+
+// --- 3. ACTIONS ---
+function openExpenseManager(id, name, type) {
+    currentEntityId = id;
+    currentEntityName = name; 
+    
+    document.getElementById('dealerListSection').style.display = 'none';
+    document.getElementById('commissionSection').style.display = 'block';
+    
+    const wrapper = document.getElementById('contentWrapper');
+    const config = getTypeConfig(entityType)[type];
+
+    // Reset Classes
+    wrapper.classList.remove('header-GIC', 'header-HEALTH', 'header-NONMOTOR', 'header-LIC');
+    wrapper.classList.add(config.headerClass);
+
+    document.getElementById('commissionHeader').innerHTML = `<span style="color:${config.color}">${type}</span> Commission`;
+    document.getElementById('subHeaderBadge').innerHTML = `Managing expenses for: <b>${name}</b>`;
+    document.getElementById('currentTabTitle').innerText = `${type} Payout Entries`;
+
+    switchTab(type); 
+}
+
+function hideCommission() {
+    document.getElementById('dealerListSection').style.display = 'block';
+    document.getElementById('commissionSection').style.display = 'none';
+    document.getElementById('newDateInput').value = '';
+}
+
+function openReport(id, name, type) {
+    const config = getTypeConfig(entityType)[type];
+    if(config && config.reportPage) {
+        if (entityType === 'partner') {
+             window.location.href = `${config.reportPage}?partners=${encodeURIComponent(name)}`;
+        } else {
+             window.location.href = `${config.reportPage}?dealerId=${id}&name=${encodeURIComponent(name)}&type=${type}`;
+        }
+    }
+}
+
+// --- 4. DATA LOADING LOGIC (STANDARD GIC LOGIC) ---
+function switchTab(type) {
+    currentType = type;
+    document.getElementById('newDateInput').value = '';
+    loadCommissionEntries();
+}
+
+async function loadCommissionEntries() {
+    const tbody = document.getElementById('entriesBody');
+    while (tbody.rows.length > 1) { tbody.deleteRow(1); }
+    
+    document.getElementById('commShowingText').innerText = `Loading ${currentType} entries...`;
+    document.getElementById('commShowingText').style.display = 'block';
+
+    const config = getTypeConfig(entityType)[currentType];
+    const nameParam = entityType === 'partner' ? 'partnerName' : 'dealerName';
+
+    try {
+        const url = `${API_BASE}${config.listApi}?${nameParam}=${encodeURIComponent(currentEntityName)}`;
+        
+        const res = await fetch(url, { headers: { 'Cache-Control': 'no-cache' } });
+        const result = await res.json();
+        
+        const data = result.data || result;
+
+        if(res.ok && data && data.length > 0) {
+            
+            const nameKey = entityType === 'partner' ? 'partnerName' : 'dealerName';
+            const alternativeKey = entityType === 'partner' ? 'partner' : 'dealer';
+
+            const filteredData = data.filter(item => {
+                const dName = item[nameKey] || item[alternativeKey] || "";
+                return dName.trim().toLowerCase() === currentEntityName.trim().toLowerCase();
+            });
+
+            if (filteredData.length === 0) {
+                document.getElementById('commShowingText').innerText = `No payout entries found for ${currentEntityName}.`;
+                return;
+            }
+
+            // Sort Descending
+            filteredData.sort((a, b) => {
+                const dateA = a.date || a.commissionDate;
+                const dateB = b.date || b.commissionDate;
+                return String(dateB).localeCompare(String(dateA));
+            });
+            
+            loadedDates = filteredData.map(e => String(e.date || e.commissionDate).substring(0, 10));
+
+            filteredData.forEach((item, index) => {
+                const rawDate = item.date || item.commissionDate;
+                const displayStr = formatDisplayDate(rawDate);
+                const linkDate = normalizeDateForLink(rawDate);
+
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><span style="font-weight:600; color:#333; font-size:14px;">${displayStr}</span></td>
+                    <td style="text-align: right;">
+                        <button onclick="openBreakdown('${linkDate}')" class="btn-edit"><i class="fas fa-pencil-alt"></i> Edit</button>
+                        <button onclick="askDelete('${rawDate}')" class="btn-delete"><i class="fas fa-trash-alt"></i> Delete</button>
+                    </td>
+                `;
+            });
+            document.getElementById('commShowingText').style.display = 'none';
+        } else {
+            document.getElementById('commShowingText').innerText = `No payout entries found for ${currentEntityName}.`;
+        }
+    } catch (err) {
+        console.error(err);
+        document.getElementById('commShowingText').innerText = "Error loading data.";
+    }
+}
+
+// --- 5. CREATE & EDIT ACTIONS ---
+function createNewDate() {
+    const val = document.getElementById('newDateInput').value;
+    if(!val) return showToast("Please select a date first", "error");
+    
+    const cleanCheck = val.replace(/-/g, "");
+    const exists = loadedDates.some(d => d.replace(/-/g, "").includes(cleanCheck));
+
+    if(exists) return showToast("Entry already exists for this date!", "error");
+    
+    openBreakdown(normalizeDateForLink(val));
+}
+
+function openBreakdown(date) {
+    const config = getTypeConfig(entityType)[currentType];
+    const idParam = entityType === 'partner' ? 'partnerId' : 'dealerId';
+    const nameParam = entityType === 'partner' ? 'name' : 'name';
+
+    if(config) {
+        window.location.href = `${config.breakdownPage}?${idParam}=${currentEntityId}&${nameParam}=${encodeURIComponent(currentEntityName)}&date=${date}`;
+    }
+}
+
+// --- 6. DELETE LOGIC ---
+function askDelete(date) { 
+    dateToDelete = date; 
+    document.getElementById('deleteConfirmModal').style.display = 'flex'; 
+}
+function closeDeleteModal() { document.getElementById('deleteConfirmModal').style.display = 'none'; }
+
+document.getElementById('btnFinalDelete').onclick = async function() {
+    const config = getTypeConfig(entityType)[currentType];
+    const body = { date: dateToDelete };
+    if (entityType === 'partner') {
+        body.partnerName = currentEntityName;
+    } else {
+        body.dealerName = currentEntityName;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}${config.deleteApi}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        const resJson = await res.json();
+        if(resJson.success) { 
+            showToast("Entry Deleted Successfully"); 
+            loadCommissionEntries(); 
+        } else {
+            showToast(resJson.message || "Failed to delete.", "error");
+        }
+    } catch (err) { showToast("Error deleting entry", "error"); }
+    closeDeleteModal();
+};
+
+document.addEventListener('DOMContentLoaded', fetchEntities);
+function filterEntities() { currentPage = 1; renderEntityTable(); }
+function changePage(d) { currentPage += d; if(currentPage<1) currentPage=1; renderEntityTable(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Track LIC Services</title>
+
+    <link rel="stylesheet" href="../../css/gic.css">
+   
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; }
+        .page-header { background: #007bff; color: white; padding: 10px 15px; border-radius: 4px; margin-bottom: 20px; }
+        .filter-card { background: white; padding: 15px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .filter-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
+        .filter-col { display: flex; flex-direction: column; min-width: 150px; flex: 1; }
+        .filter-col label { font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; }
+        .filter-col input, .filter-col select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; width: 100%; }
+        .btn-group { display: flex; gap: 5px; margin-bottom: 5px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; color: white; display: inline-flex; align-items: center; gap: 5px; font-weight: 500;}
+        .btn-go { background-color: #31708f; }
+        .btn-export { background-color: #217346; }
+        .table-card { background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow: hidden; }
+        .table-responsive { overflow-x: auto; width: 100%; height: 65vh; }
+        .lic-table { width: 100%; border-collapse: collapse; min-width: 1800px; font-size: 12px; }
+        .lic-table th { background: #f9f9f9; padding: 10px 8px; text-align: left; border-bottom: 2px solid #ddd; color: #333; font-weight: 600; white-space: nowrap; position: sticky; top: 0; z-index: 10; }
+        .lic-table td { padding: 8px; border-bottom: 1px solid #eee; color: #555; white-space: nowrap; vertical-align: middle; }
+        .col-money { text-align: right; font-family: monospace; font-weight: 600; }
+        .checkbox-group { display: flex; gap: 10px; font-size: 12px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="page-header"><h2>New LIC Services Tracking</h2></div>
+
+<div class="filter-card">
+    <div class="filter-row">
+        <div class="filter-col">
+            <label>Filter Agent</label>
+            <select id="filterAgent"><option value="">-- All Agents --</option></select>
+        </div>
+        <div class="filter-col">
+            <label>Filter Dealer</label>
+            <select id="filterDealer"><option value="">-- All Dealers --</option></select>
+        </div>
+        <div class="filter-col" style="flex:1.5;">
+            <label>Search</label>
+            <input type="text" id="searchInput" placeholder="Policy No, Customer Name, Plan Name...">
+        </div>
+        <div class="filter-col">
+            <label>From Date</label>
+            <input type="date" id="fromDate">
+        </div>
+        <div class="filter-col">
+            <label>To Date</label>
+            <input type="date" id="toDate">
+        </div>
+        <div class="filter-actions">
+            <div class="btn-group">
+                <button class="btn btn-go" onclick="loadData()">🔍 Go</button>
+                <button class="btn btn-export" onclick="exportToExcel()">📊 Export Excel</button>
+            </div>
+            <div class="checkbox-group">
+                <label><input type="radio" name="filterDateType" value="createdAt"> By Created Dt</label>
+                <label><input type="radio" name="filterDateType" value="policyIssueDate" checked> By Policy Issue Dt</label>
+                <label><input type="radio" name="filterDateType" value="startDate"> By Policy Start Dt</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-controls" style="padding: 10px;">
+        <div>Search in Table: <input type="text" id="tableSearch" onkeyup="localSearch()" placeholder="Type to filter..." style="padding:4px; border:1px solid #ccc;"></div>
+    </div>
+    <div class="table-responsive">
+        <table class="lic-table" id="dataTable">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Customer Name</th><th>Mobile</th><th>Email</th><th>Address</th><th>Partner</th>
+                    <th>Policy No</th><th>Plan Name</th><th>Policy Issue Date</th><th>Policy Start Date</th><th>Maturity Date</th>
+                    <th class="col-money">Sum Assured</th><th class="col-money">Premium</th><th class="col-money">Net Premium</th>
+                    <th>Pay Mode</th><th>Premium Paid Date</th><th>Premium Due Date</th>
+                    <th>Dealer</th><th>Ins. Company</th>
+                    <th>Created At</th>
+                    <th class="col-money">Balance</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+    <div style="padding: 10px 15px; font-weight: bold; border-top: 1px solid #eee; text-align: right; background: #fff;">
+        Total Records: <span id="totalCount">0</span> | Total Balance: ₹<span id="totalBalance">0</span>
+    </div>
+</div>
+
+<script>
+const API_BASE = "http://localhost:4000";
+const el = (id) => document.getElementById(id);
+let allData = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const date = new Date();
+    el('fromDate').value = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+    el('toDate').value = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
+    
+    await Promise.allSettled([loadAgents(), loadDealers()]);
+    loadData(); 
+});
+
+async function loadAgents() {
+    try {
+        const res = await fetch(`${API_BASE}/api/master/partner`);
+        const json = await res.json();
+        const sel = el('filterAgent');
+        const list = Array.isArray(json) ? json : (json.data || []);
+        list.filter(p => p.status === 'Active').forEach(p => sel.appendChild(new Option(p.name, p._id)));
+    } catch(e) { console.error("Agent Load Error:", e); }
+}
+
+async function loadDealers() {
+    try {
+        const res = await fetch(`${API_BASE}/api/master/dealer`);
+        const json = await res.json();
+        const sel = el('filterDealer');
+        const list = Array.isArray(json) ? json : (json.data || []);
+        list.filter(d => d.status === 'Active').forEach(d => sel.appendChild(new Option(d.name, d.name)));
+    } catch(e) { console.error("Dealer Load Error:", e); }
+}
+
+async function loadData() {
+    const tbody = el('tableBody');
+    tbody.innerHTML = '<tr><td colspan="20" style="text-align:center; padding:20px;">Fetching Data...</td></tr>';
+
+    const dateFilterField = document.querySelector('input[name="filterDateType"]:checked').value;
+
+    const params = new URLSearchParams({
+        partner: el('filterAgent').value,
+        dealer: el('filterDealer').value,
+        search: el('searchInput').value,
+        from: el('fromDate').value,
+        to: el('toDate').value,
+        dateFilterField: dateFilterField
+    }).toString();
+
+    try {
+        const res = await fetch(`${API_BASE}/api/track/lic?${params}`);
+        if (!res.ok) throw new Error(`Server Error: ${res.status}`);
+        
+        const resData = await res.json();
+        allData = Array.isArray(resData) ? resData : (resData.data || []);
+        
+        renderTable(allData);
+    } catch (err) {
+        console.error("Fetch Error:", err);
+        tbody.innerHTML = `<tr><td colspan="20" style="text-align:center; color:red; padding:20px;">Error: ${err.message}</td></tr>`;
+    }
+}
+
+function renderTable(data) {
+    const tbody = el('tableBody');
+    tbody.innerHTML = '';
+    
+    if (data.length === 0) {
+        el('totalCount').innerText = "0";
+        el('totalBalance').innerText = "0";
+        tbody.innerHTML = '<tr><td colspan="20" style="text-align:center; padding:20px;">No matching data found.</td></tr>';
+        return;
+    }
+
+    let totalBal = 0;
+    const fmt = d => d ? new Date(d).toLocaleDateString('en-GB') : '-';
+    const money = val => Number(val).toLocaleString('en-IN', {minimumFractionDigits: 0});
+
+    data.forEach((row, index) => {
+        const bal = Number(row.balance || 0);
+        totalBal += bal;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td><strong>${row.customerName}</strong></td>
+            <td>${row.customerMobile}</td>
+            <td>${row.customerEmail}</td>
+            <td>${row.address}</td>
+            <td>${row.agentName}</td>
+
+            <td>${row.policyNo}</td>
+            <td style="color:#d35400;">${row.planName}</td>
+            <td>${fmt(row.policyIssueDate)}</td>
+            <td>${fmt(row.startDate)}</td>
+            <td>${fmt(row.maturityDate)}</td>
+
+            <td class="col-money">${money(row.sumAssured)}</td>
+            <td class="col-money" style="font-weight:bold;">${money(row.premium)}</td>
+            <td class="col-money">${money(row.netPremium)}</td>
+
+            <td>${row.payMode}</td>
+            <td>${fmt(row.premiumPaidDate)}</td>
+            <td>${fmt(row.premiumDueDate)}</td>
+
+            <td>${row.dealerName}</td>
+            <td>${row.insCompany}</td>
+
+            <td>${fmt(row.createdAt)}</td>
+            <td class="col-money">${money(bal)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    el('totalCount').innerText = data.length;
+    el('totalBalance').innerText = totalBal.toLocaleString('en-IN', {minimumFractionDigits: 2});
+}
+
+function localSearch() {
+    const query = el('tableSearch').value.toLowerCase();
+    const filtered = allData.filter(row => 
+        row.customerName.toLowerCase().includes(query) ||
+        row.policyNo.toLowerCase().includes(query) ||
+        row.planName.toLowerCase().includes(query)
+    );
+    renderTable(filtered);
+}
+
+async function exportToExcel() {
+    if (!allData || allData.length === 0) {
+        alert("⚠️ No data available to export! Please search first.");
+        return;
+    }
+
+    try {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('LIC Report');
+
+        worksheet.columns = [
+            { header: 'S.No', key: 'sno', width: 8 },
+            { header: 'Customer Name', key: 'customerName', width: 20 },
+            { header: 'Mobile', key: 'customerMobile', width: 15 },
+            { header: 'Email', key: 'customerEmail', width: 25 },
+            { header: 'Address', key: 'address', width: 25 },
+            { header: 'Partner/Agent', key: 'agentName', width: 15 },
+            { header: 'Policy No', key: 'policyNo', width: 20 },
+            { header: 'Plan Name', key: 'planName', width: 20 },
+            { header: 'Policy Issue Date', key: 'policyIssueDate', width: 15 },
+            { header: 'Policy Start Date', key: 'startDate', width: 15 },
+            { header: 'Maturity Date', key: 'maturityDate', width: 15 },
+            { header: 'Sum Assured', key: 'sumAssured', width: 15, style: { numFmt: '₹#,##0' } },
+            { header: 'Premium', key: 'premium', width: 15, style: { numFmt: '₹#,##0' } },
+            { header: 'Net Premium', key: 'netPremium', width: 15, style: { numFmt: '₹#,##0' } },
+            { header: 'Pay Mode', key: 'payMode', width: 12 },
+            { header: 'Premium Paid Date', key: 'premiumPaidDate', width: 15 },
+            { header: 'Premium Due Date', key: 'premiumDueDate', width: 15 },
+            { header: 'Dealer', key: 'dealerName', width: 15 },
+            { header: 'Ins. Company', key: 'insCompany', width: 15 },
+            { header: 'Created At', key: 'createdAt', width: 15 },
+            { header: 'Balance', key: 'balance', width: 15, style: { numFmt: '₹#,##0' } }
+        ];
+
+        const fmt = d => d ? new Date(d).toLocaleDateString('en-GB') : '-';
+        const num = v => v ? Number(v) : 0;
+
+        allData.forEach((r, index) => {
+            worksheet.addRow({
+                sno: index + 1,
+                customerName: r.customerName || "-",
+                customerMobile: r.customerMobile || "-",
+                customerEmail: r.customerEmail || "-",
+                address: r.address || "-",
+                agentName: r.agentName || "-",
+                policyNo: r.policyNo || "-",
+                planName: r.planName || "-",
+                policyIssueDate: fmt(r.policyIssueDate),
+                startDate: fmt(r.startDate),
+                maturityDate: fmt(r.maturityDate),
+                sumAssured: num(r.sumAssured),
+                premium: num(r.premium),
+                netPremium: num(r.netPremium),
+                payMode: r.payMode || "-",
+                premiumPaidDate: fmt(r.premiumPaidDate),
+                premiumDueDate: fmt(r.premiumDueDate),
+                dealerName: r.dealerName || "-",
+                insCompany: r.insCompany || "-",
+                createdAt: fmt(r.createdAt),
+                balance: num(r.balance)
+            });
+        });
+
+        const headerRow = worksheet.getRow(1);
+        headerRow.eachCell((cell) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF007BFF' }
+            };
+            cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 12 };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
+        });
+
+        worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber > 1) {
+                row.eachCell((cell, colNumber) => {
+                    cell.border = { top: { style: 'thin', color: { argb: 'FFCCCCCC' } }, left: { style: 'thin', color: { argb: 'FFCCCCCC' } }, bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } }, right: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
+                    const moneyCols = [12, 13, 14, 21];
+                    if (moneyCols.includes(colNumber)) {
+                        cell.alignment = { horizontal: 'right' };
+                        cell.font = { bold: true };
+                    } else {
+                        cell.alignment = { horizontal: 'left' };
+                    }
+                });
+            }
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `LIC_CRM_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+    } catch (err) {
+        console.error("Export Error:", err);
+        alert("Export Failed: " + err.message);
+    }
+}
+</script>
+</body>
+</html>

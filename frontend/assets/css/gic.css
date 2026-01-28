@@ -1,0 +1,257 @@
+/* ========================================================================
+   gic.css (Final Combined and Optimized Styles)
+   ---
+   Includes all rules from forms.css plus specific GIC UI enhancements for 
+   consistency across all cards (especially for stacked inputs like in 
+   Dates, IDV & Commercials section).
+   ======================================================================== */
+
+/* COLORS & VARIABLES */
+:root{
+  --primary-dark: #013859;
+  --primary-light:#005a96;
+  --accent:#ff9800;
+  --bg:#f4f6f9;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --border:#d3d3d3;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --radius: 6px;
+  /* GIC Custom Variables */
+  --radio-active-bg: #e6f7ff;
+  --radio-active-border: var(--primary-light);
+}
+
+/* BASE */
+*{ box-sizing: border-box; }
+html,body{ height:100%; margin:0; font-family: "Inter", Arial, sans-serif; background:var(--bg); color:#222; }
+
+/* PAGE / CARD */
+.page-frame{ display:flex; justify-content:center; width:100%; }
+.page-content{ width:100%; max-width:1400px; padding:20px 28px; margin:0 auto; box-sizing:border-box; }
+
+.crm-card{
+  width:100%;
+  background:var(--card);
+  padding:14px 16px;
+  border-radius:10px;
+  box-shadow:var(--shadow);
+  border:1px solid #eee;
+  margin-bottom:14px;
+}
+
+/* HEADINGS */
+h2{ margin:0 0 12px; font-size:20px; color:var(--primary-dark); font-weight:600; }
+h3{ margin:0 0 10px; font-size:15px; padding-bottom:6px; border-bottom:1px solid #e6e6e6; color:var(--primary-dark); }
+
+/* LABELS & INPUTS */
+label{ display:block; margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:600; }
+input[type="text"], input[type="date"], input[type="number"], input[type="email"], select, textarea, input[type="search"]{
+  width:100%;
+  min-height:34px;
+  padding:7px 10px;
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  background:#fff;
+  font-size:13px;
+  margin:0;
+}
+textarea{ min-height:80px; padding:8px 10px; resize:vertical; }
+
+input:focus, select:focus, textarea:focus{
+  outline:none;
+  border-color:var(--primary-light);
+  box-shadow:0 0 0 3px rgba(0,90,150,0.07);
+}
+
+/* RADIO VISIBLE FIX */
+input[type="radio"]{
+  width:auto;
+  height:auto;
+  margin:0 6px 0 0;
+  padding:0;
+  display:inline-block;
+  cursor:pointer;
+}
+
+/* BUTTONS */
+.crm-button-primary, .crm-button-accent, .crm-button-small{
+  border:0;
+  border-radius:6px;
+  padding:8px 12px;
+  font-weight:600;
+  cursor:pointer;
+  font-size:13px;
+}
+.crm-button-primary{ background:var(--primary-dark); color:#fff; }
+.crm-button-accent{ background:var(--accent); color:#fff; }
+.crm-button-small{ padding:6px 10px; }
+
+/* FORM GRID (flex-based, responsive) */
+.form-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-bottom:12px;
+  align-items:flex-start;
+}
+
+/* IMPORTANT: This rule defines the 6-COLUMN ELASTIC layout for most fields */
+.form-col {
+  display:flex;
+  flex-direction:column;
+  /* Allow growing/shrinking (flex: 1) but ensure a minimum size of 1/6th of the row */
+  flex: 1; 
+  /* Sets the base width for 6 columns in a row (100%/6 - gap) */
+  min-width: calc(16.66% - 12px); 
+}
+
+/* --- GIC INPUT CONSISTENCY FIX --- */
+/* Add margin below inputs/selects inside a form-col to separate them when stacked (Dates/IDV section) */
+.form-col > input, 
+.form-col > select,
+.form-col > .attachment-btn {
+    margin-bottom: 12px; /* Consistent spacing for stacked items */
+}
+
+/* Remove margin from the very last element in the column to prevent extra spacing at the card bottom */
+.form-col > *:last-child {
+    margin-bottom: 0;
+}
+/* ---------------------------------- */
+
+
+/* Column helpers (use on .form-col) */
+.col-100{ flex:1 1 100%; max-width:100%; }
+.col-50 { flex:1 1 calc(50% - 12px); max-width: calc(50% - 12px); }
+.col-40 { flex:1 1 calc(40% - 12px); max-width: calc(40% - 12px); }
+.col-33 { flex:1 1 calc(33.33% - 12px); max-width: calc(33.33% - 12px); }
+.col-30 { flex:1 1 calc(30% - 12px); max-width: calc(30% - 12px); }
+.col-25 { flex:1 1 calc(25% - 12px); max-width: calc(25% - 12px); }
+.col-20 { flex:1 1 calc(20% - 12px); max-width: calc(20% - 12px); }
+.col-16 { flex:1 1 calc(16.66% - 12px); max-width: calc(16.66% - 12px); }
+
+/* Fixed small fields (These classes override the 6-col rule where needed) */
+.col-fixed-85 { flex:0 0 85px; max-width:85px; }
+.col-fixed-100{ flex:0 0 100px; max-width:100px; }
+.col-fixed-200{ flex:0 0 200px; max-width:200px; }
+.col-fixed-120{ flex:0 0 120px; max-width:120px; }
+
+/* Responsive fallback */
+@media (max-width:900px){
+  .form-row{ gap:10px; }
+  .col-16, .col-20, .col-25, .col-30, .col-33, .col-40, .col-fixed-85, .col-fixed-100,
+  .form-col { /* Ensure all columns take full width on mobile */
+    flex:1 1 100% !important;
+    max-width:100% !important;
+  }
+  .page-content{ padding:14px; max-width:100%; }
+}
+
+/* RADIO GRID (GIC Product container) */
+.radio-grid-container{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 14px;
+  padding:8px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background: #fff;
+  min-height:44px;
+  align-items:center;
+}
+.radio-grid-container label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px; 
+  border-radius:6px;
+  cursor:pointer;
+  font-size:14px;
+  color: #333;
+  background:transparent;
+  border: 1px solid transparent; 
+  transition: all 0.2s;
+}
+.radio-grid-container label:hover{ 
+  background: rgba(0,0,0,0.04); 
+}
+/* Active Radio button styling */
+.radio-grid-container label[aria-checked="true"] {
+    background: var(--radio-active-bg);
+    border: 1px solid var(--radio-active-border);
+    color: var(--primary-dark);
+    font-weight: 600;
+}
+/* Hide actual radio button visually while keeping it accessible/functional */
+.radio-grid-container input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+
+/* helper: attachment button (Enhanced for consistency with inputs) */
+.attachment-btn{
+  display:block; 
+  text-align:center;
+  /* Match height of inputs */
+  min-height:34px; 
+  line-height: 18px; /* Center text vertically */
+  padding:7px 10px; /* Match input padding */
+  
+  border-radius:var(--radius);
+  border:1px dashed var(--primary-light); 
+  cursor:pointer;
+  background:#fff;
+  color: var(--primary-dark);
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.attachment-btn:hover {
+    background: rgba(0, 90, 150, 0.05);
+}
+
+
+/* compact table styles */
+.table-responsive{ overflow:auto; }
+.crm-table{ width:100%; border-collapse:collapse; font-size:13px; }
+.crm-table th, .crm-table td{ padding:8px; border-bottom:1px solid #eee; text-align:left; }
+
+/* small utilities */
+.mt-8{ margin-top:8px; }
+.mb-8{ margin-bottom:8px; }
+.text-center{ text-align:center; }
+
+  /* Initially hide all conditional containers */
+    #trailorFieldContainer,
+    #pcvMandatoryContainer,
+    #paTaxiContainer,
+    #paToPassContainer { 
+        display: none;
+    }
+#searchList {
+    position: absolute;
+    width: 100%;
+    max-height: 250px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.search-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    font-size: 13px;
+}
+.search-item:hover {
+    background-color: #f8f9fa;
+    color: #007bff;
+}
+.search-item strong {
+    display: block;
+    color: #333;
+}

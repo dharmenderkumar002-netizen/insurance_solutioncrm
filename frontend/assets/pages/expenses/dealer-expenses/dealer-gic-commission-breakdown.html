@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    // Redirect to main layout if not in an iframe.
+    // This prevents direct access to the page.
+    if (window.self === window.top) {
+        // The path to layout.html from this page.
+        window.location.href = '../../layout.html';
+    }
+</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GIC Commission Breakdown</title>
+
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="/assets/css/gic.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+    /* --- GENERAL STYLES --- */
+    body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; padding: 0; margin: 0; }
+    
+    .top-green-bar { 
+        background-color: #00a65a; color: white; padding: 15px 20px; 
+        font-size: 18px; font-weight: 500; display: flex; align-items: center; 
+        justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .container { 
+        padding: 10px;
+        padding-bottom: 80px; 
+        max-width: 98%;
+        margin: 0 auto; 
+    }
+    /* --- INFO CARDS --- */
+    .card { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; }
+    
+    .info-row { display: flex; gap: 20px; margin-bottom: 20px; }
+    .info-col { flex: 1; }
+    .info-label { font-weight: 600; font-size: 12px; color: #666; margin-bottom: 6px; text-transform: uppercase; }
+    .info-box { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px 15px; font-size: 14px; color: #333; border-radius: 4px; font-weight: 500; }
+
+    /* --- TABLE STYLES --- */
+    .details-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 12px; }
+    .details-table thead th { 
+        background-color: #e9ecef; color: #495057; font-weight: 600; 
+        padding: 10px 8px; text-align: left; border-bottom: 2px solid #dee2e6; 
+        white-space: nowrap; 
+    }
+    .details-table tbody td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: middle; color: #333; }
+    .details-table tbody tr:hover { background-color: #f1f3f5; }
+
+    /* Icons in table */
+    .check-icon { color: #00a65a; font-size: 13px; }
+    .dash-icon { color: #ccc; }
+
+    /* Conflict Animation */
+    .conflict-row { background-color: #ffe6e6 !important; transition: background-color 0.5s; }
+
+    /* --- ACTION BUTTONS --- */
+    .action-cell { display: flex; justify-content: center; gap: 15px; }
+    .edit-btn { color: #337ab7; cursor: pointer; font-size: 14px; transition: color 0.2s; }
+    .remove-btn { color: #d9534f; cursor: pointer; font-size: 14px; transition: color 0.2s; }
+    .edit-btn:hover { color: #23527c; } 
+    .remove-btn:hover { color: #a94442; }
+
+    .btn-add-row {
+        background-color: #337ab7; color: white; padding: 8px 15px; 
+        border-radius: 4px; border:none; cursor: pointer; display: flex; 
+        align-items: center; gap: 5px; font-size: 13px; margin-top: 15px;
+    }
+    .btn-add-row:hover { background-color: #286090; }
+
+    .action-bar { 
+        margin-top: 30px; display: flex; justify-content: flex-end; gap: 15px; 
+        position: sticky; bottom: 20px; z-index: 90;
+    }
+    .btn-action { 
+        padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: 600; 
+        cursor: pointer; border: none; display: flex; align-items: center; gap: 8px; 
+        transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    }
+    .btn-back { background-color: #6c757d; color: white; }
+    .btn-save { background-color: #00a65a; color: white; }
+    .btn-save:hover { background-color: #008d4c; transform: translateY(-1px); }
+    .btn-save:disabled { background-color: #88dcb5; cursor: not-allowed; }
+
+    /* --- MODAL --- */
+    .modal-overlay { 
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; 
+        align-items: flex-start; padding-top: 50px; backdrop-filter: blur(2px);
+    }
+    .modal-content { 
+        background: white; width: 800px; max-width: 95%; border-radius: 8px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; 
+        animation: slideDown 0.3s ease-out; display: flex; flex-direction: column; 
+    }
+    @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .modal-header { background: #00a65a; color: white; padding: 15px 20px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .close-icon { cursor: pointer; font-size: 18px; opacity: 0.8; } .close-icon:hover { opacity: 1; }
+    
+    .modal-body { padding: 25px; overflow-y: auto; max-height: 70vh; }
+    
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    .full-width { grid-column: span 2; }
+    
+    .form-group label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 6px; color: #555; text-transform: uppercase; }
+    .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
+    .form-group input:focus, .form-group select:focus { border-color: #00a65a; outline: none; }
+
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 20px; grid-column: span 2; background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px dashed #ced4da; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .checkbox-item input { width: 16px; height: 16px; cursor: pointer; accent-color: #00a65a; }
+    .checkbox-item label { margin-bottom: 0; cursor: pointer; font-size: 13px; font-weight: 600; color: #333; }
+
+    .modal-footer { padding: 15px 25px; background: #f8f9fa; text-align: right; border-top: 1px solid #dee2e6; }
+    .btn-close { background: #6c757d; color: white; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+    .btn-add { background: #337ab7; color: white; border: none; padding: 8px 25px; border-radius: 4px; cursor: pointer; }
+
+    /* --- TOAST --- */
+    #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px 20px; position: fixed; z-index: 2001; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    #toast.show { visibility: visible; animation: fadein 0.3s, fadeout 0.3s 2.5s; }
+    @keyframes fadein { from {bottom: 10px; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+    @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 10px; opacity: 0;} }
+</style>
+</head>
+<body>
+
+<div class="top-green-bar">
+    <span><i class="fas fa-hand-holding-dollar"></i> Dealer Commission Setup</span>
+</div>
+
+<div class="container">
+    <div class="card">
+        <div class="info-row">
+            <div class="info-col">
+                <div class="info-label">Dealer Name</div>
+                <div class="info-box" id="dispName">Loading...</div>
+            </div>
+            <div class="info-col">
+                <div class="info-label">Effective Date</div>
+                <div class="info-box" id="dispDate">--</div>
+            </div>
+        </div>
+
+        <datalist id="vehicleSuggestions"></datalist>
+
+        <table class="details-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">S.No</th>
+                    <th>Company</th>
+                    <th>Product</th>
+                    <th>Coverage</th>
+                    <th>Model</th> 
+                    <th title="Percent On Net" style="text-align:center;">% ON</th>
+                    <th title="Personal Accident" style="text-align:center;">PA</th>
+                    <th title="Without Add-on" style="text-align:center;">W/O AO</th>
+                    <th>Fuel</th>
+                    <th>RTO</th>
+                    <th>CC Range</th>
+                    <th>NCB</th>
+                    <th>Fixed</th>
+                    <th>% Age</th>
+                    <th style="text-align:center;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+
+        <button class="btn-add-row" onclick="openModal()">
+            <i class="fas fa-plus-circle"></i> Add New Rule
+        </button>
+    </div>
+
+    <div class="action-bar">
+        <button class="btn-action btn-back" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="btn-action btn-save" onclick="saveData()"><i class="fas fa-save"></i> Save Changes</button>
+    </div>
+</div>
+
+<div id="toast">Data loaded</div>
+
+<div class="modal-overlay" id="addModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span id="modalTitle">Add Commission Criteria</span>
+            <span class="close-icon" onclick="closeModal()">✖</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Insurance Company *</label>
+                    <select id="m_company"><option value="">Select Company</option></select>
+                </div>
+                <div class="form-group">
+                    <label>GIC Product *</label>
+                    <select id="m_product"><option value="">Select Product</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Coverage Type</label>
+                    <select id="m_coverage"><option value="All">All Coverages</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Vehicle Model (Optional)</label>
+                    <input list="vehicleSuggestions" id="m_vehicle_model" placeholder="Type or select model...">
+                </div>
+                
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="m_percent_on_net">
+                        <label for="m_percent_on_net">Calculate on <b>Net Premium</b></label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="m_pa">
+                        <label for="m_pa">Includes PA Cover</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="m_without_addon">
+                        <label for="m_without_addon">Without Add-ons (Zero Dept etc)</label>
+                    </div>
+                </div>
+
+                <div class="form-group"><label>Fuel Type</label><select id="m_fuel"><option value="All">All Fuels</option></select></div>
+                <div class="form-group"><label>RTO Code (Partial match ok, e.g. DL)</label><input type="text" id="m_rto" placeholder="All"></div>
+                
+                <div class="form-group"><label>CC Range (From - To)</label>
+                    <div style="display:flex; gap:5px;"><input type="number" id="m_cc_from" placeholder="0"><input type="text" id="m_cc_to" placeholder="Max"></div>
+                </div>
+                <div class="form-group"><label>NCB Range (From - To)</label>
+                    <div style="display:flex; gap:5px;"><input type="number" id="m_ncb_from" placeholder="0"><input type="text" id="m_ncb_to" placeholder="Max"></div>
+                </div>
+                
+                <div class="form-group"><label>Fixed Commission (₹)</label><input type="number" id="m_fixed" value="0"></div>
+                <div class="form-group"><label>Percentage (%)</label><input type="number" id="m_percent" value="0" step="0.01"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-close" onclick="closeModal()">Cancel</button>
+            <button class="btn-add" id="modalBtnAction" onclick="addCriteriaToTable()">Add to List</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const dealerName = decodeURIComponent(params.get('name') || "Unknown");
+    // Use a relative path for the API base. This works for both local and production.
+    // Assumes frontend and backend are on the same domain.
+    const API_BASE = "";
+    
+    // --- DATE HANDLERS ---
+    const rawDate = params.get('date'); 
+    const getToday = () => new Date().toISOString().split('T')[0];
+    let selectedDate = rawDate || getToday();
+
+    function cleanDateForBackend(dateStr) {
+        if (!dateStr) return new Date().toISOString().split('T')[0];
+        const str = String(dateStr).trim();
+        if (str.includes("-") && str.split("-")[0].length === 2) {
+            const [dd, mm, yyyy] = str.split("-");
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        if (str.length === 8 && !str.includes("-")) {
+            const yyyy = str.substring(0, 4);
+            const mm = str.substring(4, 6);
+            const dd = str.substring(6, 8);
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        return str;
+    }
+
+    function formatDateForDisplay(dateStr) {
+        const clean = cleanDateForBackend(dateStr); 
+        const [yyyy, mm, dd] = clean.split("-");
+        return `${dd}-${mm}-${yyyy}`;
+    }
+
+    document.getElementById('dispDate').innerText = formatDateForDisplay(selectedDate);
+    document.getElementById('dispName').innerText = dealerName;
+
+
+    // --- LOGIC ---
+    let allVehicles = [];
+    let editingRow = null;
+
+    async function fetchJson(url) {
+        try { const res = await fetch(url); return await res.json(); }
+        catch (err) { console.error(err); return null; }
+    }
+
+    async function loadMasters() {
+        const [vData, cData, pData, covData, fData] = await Promise.all([
+            fetchJson(`${API_BASE}/api/master/item/vehicle`),
+            fetchJson(`${API_BASE}/api/master/item/insurancecompany`),
+            fetchJson(`${API_BASE}/api/master/item/gicproduct`),
+            fetchJson(`${API_BASE}/api/master/item/coverage`),
+            fetchJson(`${API_BASE}/api/master/item/fueltype`)
+        ]);
+
+        if(vData?.data) {
+            allVehicles = vData.data.filter(v => v.status === "Active");
+            const dl = document.getElementById('vehicleSuggestions');
+            allVehicles.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.name || v.makeModel;
+                dl.appendChild(opt);
+            });
+        }
+        
+        populateSelect('m_company', cData, 'companyName');
+        populateSelect('m_product', pData, 'name');
+        populateSelect('m_coverage', covData, 'name');
+        populateSelect('m_fuel', fData, 'fuelType');
+    }
+
+    function populateSelect(id, json, key) {
+        const select = document.getElementById(id);
+        if(!json?.data) return;
+        json.data.filter(x => x.status === "Active").forEach(item => {
+            const val = item[key] || item.name;
+            const opt = document.createElement('option');
+            opt.value = val; opt.textContent = val;
+            select.appendChild(opt);
+        });
+    }
+
+    // --- MODAL OPERATIONS ---
+    function openModal(isEdit = false) {
+        document.getElementById('addModal').style.display = 'flex';
+        if(!isEdit) {
+            editingRow = null;
+            document.getElementById('modalTitle').innerText = "Add New Criteria";
+            document.getElementById('modalBtnAction').innerText = "Add to List";
+            clearForm();
+        }
+    }
+
+    function closeModal() { document.getElementById('addModal').style.display = 'none'; editingRow = null; }
+
+    function clearForm() {
+        const ids = ['m_company','m_product','m_vehicle_model','m_rto','m_cc_from','m_cc_to','m_ncb_from','m_ncb_to'];
+        ids.forEach(id => document.getElementById(id).value = "");
+        ['m_fixed','m_percent'].forEach(id => document.getElementById(id).value = "0");
+        ['m_percent_on_net', 'm_pa', 'm_without_addon'].forEach(id => document.getElementById(id).checked = false);
+        ['m_coverage','m_fuel'].forEach(id => document.getElementById(id).value = "All");
+        document.getElementById('m_company').selectedIndex = 0;
+        document.getElementById('m_product').selectedIndex = 0;
+    }
+
+    // --- TABLE OPERATIONS ---
+    function renumberRows() {
+        const tbody = document.getElementById('tableBody');
+        const rows = tbody.rows;
+        for (let i = 0; i < rows.length; i++) {
+            if (rows[i].cells.length > 0) {
+                // Correctly targeting cell[0] which is now S.No
+                rows[i].cells[0].innerText = i + 1;
+            }
+        }
+    }
+
+    function addCriteriaToTable() {
+        const data = {
+            company: document.getElementById('m_company').value,
+            product: document.getElementById('m_product').value,
+            coverage: document.getElementById('m_coverage').value || 'All',
+            vehicleModel: document.getElementById('m_vehicle_model').value || 'All',
+            percentOnNet: document.getElementById('m_percent_on_net').checked,
+            pa: document.getElementById('m_pa').checked,
+            withoutAddon: document.getElementById('m_without_addon').checked,
+            fuel: document.getElementById('m_fuel').value || 'All',
+            rto: document.getElementById('m_rto').value || 'All',
+            ccFrom: document.getElementById('m_cc_from').value || '0',
+            ccTo: document.getElementById('m_cc_to').value || 'Max',
+            ncbFrom: document.getElementById('m_ncb_from').value || '0',
+            ncbTo: document.getElementById('m_ncb_to').value || 'Max',
+            fixed: document.getElementById('m_fixed').value || 0,
+            percent: document.getElementById('m_percent').value || 0
+        };
+
+        if(!data.company || !data.product) { alert("Company and Product are required"); return; }
+        
+        if(editingRow) updateRow(editingRow, data);
+        else addRowToTable(data);
+        closeModal();
+    }
+
+    function addRowToTable(data, renumber = true) {
+        const tbody = document.getElementById('tableBody');
+        const row = tbody.insertRow();
+        updateRow(row, data);
+        if (renumber) {
+            renumberRows();
+        }
+    }
+
+    function updateRow(row, data) {
+        const icon = (v) => v ? '<i class="fas fa-check check-icon"></i>' : '<i class="fas fa-minus dash-icon"></i>';
+        
+        // --- NOTE: Added an EMPTY FIRST CELL for S.No ---
+        // Added Delete Button in last cell
+        row.innerHTML = `
+            <td style="text-align:center; font-weight:bold;"></td> 
+            <td style="font-weight:600;">${data.company}</td>
+            <td>${data.product}</td>
+            <td>${data.coverage}</td>
+            <td>${data.vehicleModel}</td>
+            <td style="text-align:center;" data-value="${data.percentOnNet}">${icon(data.percentOnNet)}</td>
+            <td style="text-align:center;" data-value="${data.pa}">${icon(data.pa)}</td>
+            <td style="text-align:center;" data-value="${data.withoutAddon}">${icon(data.withoutAddon)}</td>
+            <td>${data.fuel}</td>
+            <td>${data.rto}</td>
+            <td>${data.ccFrom}-${data.ccTo}</td>
+            <td>${data.ncbFrom}-${data.ncbTo}%</td>
+            <td>₹${data.fixed}</td>
+            <td style="font-weight:600; color:#007bff;">${data.percent}%</td>
+            <td class="action-cell">
+                <i class="fas fa-edit edit-btn" onclick="editRow(this)" title="Edit"></i>
+                <i class="fas fa-trash-alt remove-btn" onclick="deleteRow(this)" title="Delete"></i>
+            </td>
+        `;
+    }
+
+    // --- NEW DELETE FUNCTION ---
+    function deleteRow(btn) {
+        if(confirm('Are you sure you want to delete this rule?')) {
+            const row = btn.closest('tr');
+            row.remove();
+            renumberRows(); // S.No Re-calculate
+        }
+    }
+
+    function editRow(btn) {
+        editingRow = btn.closest('tr');
+        const cells = editingRow.cells;
+        
+        // --- NOTE: All indices shifted by +1 because cell[0] is S.No ---
+        document.getElementById('m_company').value = cells[1].innerText;
+        document.getElementById('m_product').value = cells[2].innerText;
+        document.getElementById('m_coverage').value = cells[3].innerText;
+        document.getElementById('m_vehicle_model').value = cells[4].innerText === 'All' ? '' : cells[4].innerText;
+        document.getElementById('m_percent_on_net').checked = cells[5].getAttribute('data-value') === 'true';
+        document.getElementById('m_pa').checked = cells[6].getAttribute('data-value') === 'true';
+        document.getElementById('m_without_addon').checked = cells[7].getAttribute('data-value') === 'true';
+        document.getElementById('m_fuel').value = cells[8].innerText;
+        document.getElementById('m_rto').value = cells[9].innerText === 'All' ? '' : cells[9].innerText;
+        const cc = cells[10].innerText.split('-');
+        document.getElementById('m_cc_from').value = cc[0];
+        document.getElementById('m_cc_to').value = cc[1];
+        const ncb = cells[11].innerText.replace('%','').split('-');
+        document.getElementById('m_ncb_from').value = ncb[0];
+        document.getElementById('m_ncb_to').value = ncb[1];
+        document.getElementById('m_fixed').value = cells[12].innerText.replace('₹','');
+        document.getElementById('m_percent').value = cells[13].innerText.replace('%','');
+        
+        openModal(true);
+        document.getElementById('modalTitle').innerText = "Edit Commission Criteria";
+        document.getElementById('modalBtnAction').innerText = "Update Rule";
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg; t.className = "show";
+        setTimeout(() => t.className = t.className.replace("show", ""), 3000);
+    }
+
+    // --- SAVE & LOAD ---
+    async function loadSavedData() {
+        const safeName = encodeURIComponent(dealerName);
+        const backendDate = cleanDateForBackend(selectedDate);
+        
+        let res = await fetchJson(`${API_BASE}/api/expenses/get-breakdown?dealerName=${safeName}&date=${backendDate}`);
+
+        const getItems = (r) => {
+            if (!r || !r.data) return [];
+            if (Array.isArray(r.data)) return r.data;
+            if (r.data.breakdownItems && Array.isArray(r.data.breakdownItems)) return r.data.breakdownItems;
+            return [];
+        };
+
+        let items = getItems(res);
+        
+        if(items.length === 0) {
+            res = await fetchJson(`${API_BASE}/api/expenses/get-breakdown?dealerName=${safeName}&fetchLatest=true`);
+            items = getItems(res);
+            if(items.length > 0) showToast("Loaded previous records");
+        }
+
+        if(items.length > 0) {
+            document.getElementById('tableBody').innerHTML = "";
+            items.forEach(item => {
+                const cc = (item.ccRange || "0-Max").split('-');
+                const ncb = (item.ncbRange || "0-Max").replace(/%/g,'').split('-');                
+                const isOnNet = item.OnNet === true || item.percentOnNet === true;
+                addRowToTable({
+                    company: item.company, product: item.product, coverage: item.coverage,
+                    vehicleModel: item.vehicleModel || 'All',
+                    percentOnNet: isOnNet,
+                    pa: item.pa, withoutAddon: item.withoutAddon,
+                    fuel: item.fuel, rto: item.rto,
+                    ccFrom: cc[0], ccTo: cc[1], ncbFrom: ncb[0], ncbTo: ncb[1],
+                    fixed: item.fixed, percent: item.percent
+                }, false);
+            });
+            renumberRows();
+        }
+    }
+
+    async function saveData() {
+        const btn = document.querySelector('.btn-save');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; 
+        btn.disabled = true;
+
+        const items = Array.from(document.getElementById('tableBody').rows).map(r => {
+            // --- NOTE: indices shifted by +1 here too ---
+            const isNet = r.cells[5].getAttribute('data-value') === 'true';
+            return {
+                company: r.cells[1].innerText,
+                product: r.cells[2].innerText,
+                coverage: r.cells[3].innerText,
+                vehicleModel: r.cells[4].innerText,
+                OnNet: isNet, percentOnNet: isNet,
+                pa: r.cells[6].getAttribute('data-value') === 'true',
+                withoutAddon: r.cells[7].getAttribute('data-value') === 'true',
+                fuel: r.cells[8].innerText,
+                rto: r.cells[9].innerText,
+                ccRange: r.cells[10].innerText || "0-Max",
+                ncbRange: (r.cells[11].innerText || "0-Max").replace("%%", "%"),
+                fixed: Number(r.cells[12].innerText.replace('₹', '')),
+                percent: Number(r.cells[13].innerText.replace('%', ''))
+            };
+        });
+
+        const validDate = cleanDateForBackend(selectedDate);
+        
+        try {
+            const res = await fetch(`${API_BASE}/api/expenses/save-breakdown`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    dealerName, 
+                    commissionDate: validDate, 
+                    items 
+                })
+            });
+            const json = await res.json();
+            if(json.success) showToast("✅ Data Saved Successfully!");
+            else alert("Error: " + json.message);
+        } catch(e) { alert("Server Error: " + e.message); }
+        finally { btn.innerHTML = originalText; btn.disabled = false; }
+    }
+
+    loadMasters();
+    loadSavedData();
+</script>
+</body>
+</html>

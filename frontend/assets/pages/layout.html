@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Insurance CRM</title>
+
+    <link rel="stylesheet" href="../css/sidebar.css">
+    <link rel="stylesheet" href="../css/main.css">
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f6f9;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed;
+            left: 0; top: 0;
+            width: 260px;
+            height: 100vh;
+            background: #013859;
+            color: white;
+            padding: 18px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        /* TOPBAR */
+        .topbar {
+            height: 55px;
+            background: #ff9800;
+            position: fixed;
+            left: 260px;
+            right: 0;
+            top: 0;
+            color: white;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 17px;
+            font-weight: bold;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            z-index: 999;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            margin-top: 55px;
+            padding: 15px;
+            min-height: calc(100vh - 55px);
+            background: #f4f6f9;
+            overflow: visible;
+        }
+
+        /*** IFRAME FIX ***/
+        iframe {
+            width: 100%;
+            min-height: calc(100vh - 90px);
+            border: none;
+            border-radius: 8px;
+            background: white;
+        }
+
+        /* MENU */
+        .menu-title { font-size: 13px; opacity: 0.6; margin-top: 18px; color: #cde8ff; }
+        .menu-item {
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 2px;
+            margin: 5px 0;
+            cursor: pointer;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .menu-item:hover { background: rgba(255,255,255,0.15); }
+
+        .submenu { margin-left: 15px; display: none; }
+        .submenu a { color: #cde8ff; cursor: pointer; padding: 5px 0; display: block; text-decoration: none; font-size: 14px; }
+        .submenu a:hover { color: white; }
+
+        #breadcrumb {
+            font-size: 15px;
+            font-weight: normal;
+            color: white;
+            flex-grow: 1;
+            text-align: center;
+        }
+        #breadcrumb a {
+            color: white;
+            text-decoration: none;
+        }
+        #breadcrumb a:hover {
+            text-decoration: underline;
+        }
+    </style>
+
+</head>
+
+<body>
+
+<div class="sidebar">
+    <h2 style="text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">CRM</h2>
+
+    <div class="menu-item" onclick="loadPage('dashboard.html'); return false;">🏠 Dashboard</div>
+   
+    <div class="menu-title">Main</div>
+    <div class="menu-item" onclick="toggleMenu('trackMenu')">📌 Main ▼</div>
+    <div id="trackMenu" class="submenu">
+    <a onclick="loadPage('gic.html'); return false;">🚗 GIC</a>
+    <a onclick="loadPage('health.html'); return false;">🏥 Health </a>
+    <a onclick="loadPage('nonmotor.html'); return false;">🚚 Non-Motor</a>
+    <a onclick="loadPage('lic.html'); return false;">📄 LIC</a>
+    </div>
+
+    <div class="menu-title">Track Services</div>
+    <div class="menu-item" onclick="toggleMenu('trackMenu2')">📌 Track Services ▼</div>
+    <div id="trackMenu2" class="submenu">
+        <a onclick="loadPage('track/track-all.html'); return false;">Track All</a>
+        <a onclick="loadPage('track/track-gic.html'); return false;">Track GIC</a>
+        <a onclick="loadPage('track/track-health.html'); return false;">Track Health</a>
+        <a onclick="loadPage('track/track-lic.html'); return false;">Track LIC</a>
+        <a onclick="loadPage('track/track-nonmotor.html'); return false;">Track Non-Motor</a>
+    </div>
+
+    <div class="menu-title">Renewals</div>
+    <div class="menu-item" onclick="toggleMenu('renewMenu')">🔁 Renewals ▼</div>
+    <div id="renewMenu" class="submenu">
+        <a onclick="loadPage('renewals/gic-renewals.html'); return false;">GIC Renewals</a>
+        <a onclick="loadPage('renewals/health-renewals.html'); return false;">Health Renewals</a>
+        <a onclick="loadPage('renewals/lic-renewals.html'); return false;">LIC Renewals</a>
+        <a onclick="loadPage('renewals/nonmotor-renewals.html'); return false;">Non-Motor Renewals</a>
+    </div>
+
+    <div class="menu-title">Expenses</div>
+    <div class="menu-item" onclick="toggleMenu('expenseMenu')">💰 Expenses ▼</div>
+    <div id="expenseMenu" class="submenu">
+        <a href="#" onclick="loadPage('expenses/dealer-expenses/dealer-gic-commission-management.html'); return false;">Dealer Expenses Management</a>
+        <a onclick="loadPage('expenses/gic-setting.html'); return false;">GIC Settings</a>
+        <a onclick="loadPage('expenses/partner-expenses/partner-expense-management.html'); return false;">Partner Expenses Management</a>    </div>
+
+    <div class="menu-title">Master</div>
+    <div class="menu-item" onclick="toggleMenu('masterMenu')">📚 Master ▼</div>
+    <div id="masterMenu" class="submenu">
+        <a onclick="loadPage('master/add-bank.html'); return false;">Add Bank</a>
+        <a onclick="loadPage('master/add-dealer.html'); return false;">Add Dealer</a>
+        <a onclick="loadPage('master/add-partner.html'); return false;">Add Partner</a>
+        <a onclick="loadPage('master/add-vehicle.html'); return false;">Add Vehicle</a>
+        <a onclick="loadPage('master/add-coverage.html'); return false;">Add Coverage Type</a>
+        <a onclick="loadPage('master/add-fuel.html'); return false;">Add Fuel</a>
+        <a onclick="loadPage('master/add-gic-product.html'); return false;">Add GIC Product</a>
+        <a onclick="loadPage('master/add-health-plan.html'); return false;">Add Health Product</a>
+        <a onclick="loadPage('master/add-insurance-co.html'); return false;">Add Insurance Company</a>
+        <a onclick="loadPage('master/add-insyear.html'); return false;">Add Insurance Year</a>
+        <a onclick="loadPage('master/add-lic-plan.html'); return false;">Add LIC Plan</a>
+        <a onclick="loadPage('master/add-nonmotor-plan.html'); return false;">Add Non-Motor Product</a>
+        <a onclick="loadPage('master/add-paymentmode.html'); return false;">Add Payment Mode</a>
+    </div>
+
+    <div class="menu-title">Settings</div>
+    <div class="menu-item" onclick="loadPage('settings.html'); return false;">⚙ Settings</div>
+    <div class="menu-item" onclick="logout()">🚪 Logout</div>
+</div>
+
+<div class="topbar">
+    <span>CRM — Admin</span>
+    <div id="breadcrumb"></div>
+</div>
+
+<div class="main-content">
+    <div class="page-frame">
+        <iframe id="appFrame"
+            src="dashboard.html"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-downloads allow-modals">
+        </iframe>
+    </div>
+</div>
+
+<script src="../js/auth.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    // Auth check
+    requireLogin();
+    initInactivityTimer();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let page = urlParams.get('page');
+    if (page) {
+        page = `${page}.html`;
+    } else {
+        page = 'dashboard.html';
+    }
+
+    loadPage(page);
+    history.replaceState({ page }, '', `?page=${page.replace('.html', '')}`);
+});
+
+function updateBreadcrumb(pageUrl) {
+    const breadcrumbContainer = document.getElementById('breadcrumb');
+    if (!breadcrumbContainer) return;
+
+    // Normalize URL to be relative
+    const url = new URL(pageUrl, window.location.href);
+    let path = url.pathname;
+
+    // Clean up the path
+    path = path.substring(path.indexOf('assets/pages/') + 'assets/pages/'.length).replace('.html', '');
+    
+    const parts = path.split('/').filter(p => p); // filter empty parts
+
+    let breadcrumbHtml = `<a href="#" onclick="loadPage('dashboard.html'); return false;">Home</a>`;
+
+    parts.forEach(part => {
+        const name = part.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        breadcrumbHtml += ` &gt; <span>${name}</span>`;
+    });
+
+    breadcrumbContainer.innerHTML = breadcrumbHtml;
+}
+
+
+function loadPage(page, isPopState = false) {
+    document.getElementById("appFrame").src = page;
+    updateBreadcrumb(page);
+
+    if (!isPopState) {
+        const newUrl = `?page=${page.replace('.html', '')}`;
+        history.pushState({ page }, '', newUrl);
+    }
+}
+
+window.onpopstate = function(event) {
+    if (event.state && event.state.page) {
+        loadPage(event.state.page, true);
+    }
+};
+
+function toggleMenu(id) {
+    document.querySelectorAll(".submenu").forEach(menu => {
+        if(menu.id === id) {
+            menu.style.display = (menu.style.display === "block") ? "none" : "block";
+        } else {
+            menu.style.display = "none";
+        }
+    });
+}
+
+function logout() {
+    sessionStorage.clear();
+    localStorage.clear();
+    window.location.href = 'login.html';
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    // Redirect to main layout if not in an iframe.
+    // This prevents direct access to the page.
+    if (window.self === window.top) {
+        // The path to layout.html from this page.
+        window.location.href = 'layout.html';
+    }
+</script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Non-Motor Policy Entry</title>
+
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../css/gic.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* CSS RESET & BASICS */
+        * { box-sizing: border-box; }
+
+        /* TOAST NOTIFICATION */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 400px; }
+        .toast { background: #333; color: white; padding: 12px 16px; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; display: flex; align-items: center; justify-content: space-between; animation: slideIn 0.3s ease-out; }
+        .toast.error { background: #d9534f; }
+        .toast.success { background: #5cb85c; }
+        .toast.info { background: #31708f; }
+        .toast.warning { background: #f0ad4e; color: #fff; }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* SEARCH DROPDOWN */
+        #searchList { position: absolute; top: 100%; left: 0; min-width: 350px; max-height: 300px; overflow-y: auto; background: white; border: 1px solid #ccc; border-top: none; z-index: 2000; box-shadow: 0 10px 25px rgba(0,0,0,0.25); border-radius: 0 0 6px 6px; }
+        .search-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 13px; }
+        .search-item:hover { background-color: #f1f8ff; }
+        .search-item b { display:block; color:#005a96; }
+
+        /* SMART SUGGESTION BOX (Dealer) */
+        .smart-suggestion-box { position: absolute; bottom: 100%; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-bottom: none; margin-bottom: 2px; z-index: 1000; max-height: 200px; overflow-y: auto; box-shadow: 0 -4px 8px rgba(0,0,0,0.15); border-radius: 4px 4px 0 0; display: none; }
+        .smart-suggestion-item { padding: 10px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; }
+        .smart-suggestion-item:hover { background-color: #e3f2fd; }
+        .smart-suggestion-item b { color: #2c3e50; font-weight: 600; }
+        .smart-suggestion-item span { color: #007bff; font-size: 11px; font-weight: 500; }
+        .no-record { padding: 10px; color: #d9534f; text-align: center; font-style: italic; font-size: 12px; }
+        
+        /* ATTACHMENT BUTTON STYLE (Matched to Screenshot) */
+        .attachment-btn { 
+            padding: 10px; 
+            background: #6c757d; 
+            color: white; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            width: 100%; 
+            text-align: center; 
+            font-size: 13px; 
+            transition: background 0.2s; 
+            margin-top: 5px; 
+            font-weight: 500;
+        }
+        .attachment-btn:hover { background: #5a6268; }
+
+        .view-link {
+            font-size: 11px;
+            margin-left: 8px;
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* GRID HELPERS */
+        .auto-4-col { display: flex; flex-wrap: wrap; margin: 0 -10px; }
+        .auto-4-col > .form-col { padding: 0 10px; margin-bottom: 15px; flex: 0 0 25%; max-width: 25%; }
+        
+        @media (max-width: 900px) { .auto-4-col > .form-col { flex: 0 0 50%; max-width: 50%; } }
+        @media (max-width: 600px) { .auto-4-col > .form-col { flex: 0 0 100%; max-width: 100%; } }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="sidebar">
+    <div class="logo"><img src="../assets/images/logo.png" alt="logo"></div>
+    <a href="home.html">🏠 Home</a>
+    <a href="gic.html">🛠 GIC</a>
+    <a href="lic.html">🎯 LIC</a>
+    <a href="health.html">❤️ Health</a>
+    <a href="nonmotor.html" style="background:#374151">🚘 Non Motor</a>
+    <a href="track/track-all.html">📊 Track Service</a>
+    <a href="master/add-partner.html">⚙ Master</a>
+    <a href="#" onclick="logout()">🚪 Logout</a>
+</div>
+
+<div class="page-content">
+    <h2>Non-Motor Policy Entry</h2>
+
+    <div class="crm-card">
+        <h3>Customer & Service Actions</h3>
+        <div class="form-row" style="align-items: flex-end;">
+            <div class="form-col" style="position: relative; z-index: 101; flex: 2;"> 
+                <label for="searchBox">Search (Name, Mobile, Policy No)</label>
+                <input id="searchBox" placeholder="Start typing to search..." autocomplete="off">
+                <div id="searchList"></div>
+            </div>
+            <div class="form-col" style="flex: 0 0 150px; margin-bottom: 0;">
+                <button type="button" class="crm-button-accent crm-button-small" onclick="openCustomerPopup()" style="width: 100%;">👤 + Add Customer</button>
+            </div>
+        </div>
+    </div>
+
+    <form id="nmEntryForm">
+        <div class="crm-card">
+            <h3>Customer Information</h3>
+            <input type="hidden" id="customerId">
+            <input type="hidden" id="nmId"> 
+            <div class="form-row" style="gap: 10px;">
+                <div class="form-col" style="flex: 0 0 60px;">
+                    <label>S.No</label>
+                    <input id="nmSno" readonly style="background-color: #f9f9f9;">
+                </div>
+                <div class="form-col" style="flex: 2;">
+                    <label>Customer Name</label>
+                    <input id="nmCustomerName" readonly style="background-color: #f9f9f9; font-weight:600;">
+                </div>
+                <div class="form-col" style="flex: 1;">
+                    <label>Mobile</label>
+                    <input id="nmCustomerMobile" readonly style="background-color: #f9f9f9;">
+                </div>
+                <div class="form-col" style="flex: 1.5;">
+                    <label>Partner</label>
+                    <select id="nmPartner"></select>
+                </div>
+                <div class="form-col" style="flex: 1.5;">
+                    <label>Email ID</label>
+                    <input id="nmCustomerEmail" readonly style="background-color: #f9f9f9;">
+                </div>
+                <div class="form-col" style="flex: 2.5;">
+                    <label>Address</label>
+                    <input id="nmCustomerAddress" readonly style="background-color: #f9f9f9;">
+                </div>
+            </div>
+        </div>
+
+        <div class="crm-card">
+            <h3>Policy Details</h3>
+            <div class="form-row" style="align-items: flex-end;">
+                <div class="form-col" style="position: relative; z-index: 101; flex: 2;"> 
+                    <label>Product / Plan *</label>
+                    <select id="nmProduct">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-col"><label>Policy No *</label><input id="nmPolicyNo" placeholder="Policy Number"></div>
+                <div class="form-col"><label>End No</label><input id="nmEndNo"></div>
+                <div class="form-col"><label>Policy Type *</label>
+                    <select id="nmPolicyType">
+                        <option value="New">New</option>
+                        <option value="Renewal">Renewal</option>
+                        <option value="Portability">Portability</option>
+                    </select>
+                </div>
+
+                <div class="form-col">
+                    <label>Sum Insured (SI)</label>
+                    <input type="number" id="nmSumInsured" placeholder="Coverage Amount">
+                </div>
+
+                <div class="form-col">
+                    <label>Risk Start Date</label>
+                    <input type="date" id="nmStartDate">
+                </div>
+
+                <div class="form-col">
+                    <label>Risk End Date</label>
+                    <input type="date" id="nmEndDate">
+                </div>
+
+                <div class="form-col">
+                    <label>Policy Issue Date</label>
+                    <input type="date" id="nmIssueDate">
+                </div>
+
+                <div class="form-col">
+                    <label>Net Premium *</label>
+                    <input type="number" id="nmNetPremium" placeholder="Before Tax">
+                </div>
+
+                <div class="form-col">
+                    <label>GST Amount</label>
+                    <input type="number" id="nmGst">
+                </div>
+
+                <div class="form-col">
+                    <label>Total Premium *</label>
+                    <input type="number" id="nmTotalPremium" placeholder="Final Amount">
+                </div>
+
+                 <div class="form-col" style="position:relative;">
+                     <label style="color:#b7791f;">Dealer (Payout) *</label>
+                     <input id="nmDealerName" placeholder="Select dealer..." autocomplete="off" style="border-color:#ffeeba; background:#fffdf5;">
+                </div>
+
+                <div class="form-col">
+                    <label>Insurance Company *</label>
+                    <select id="nmInsCompany"></select>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="crm-card">
+            <h3>Previous Policy</h3>
+            <div class="form-row auto-4-col">
+                <div class="form-col">
+                    <label>PYP Insurance Co</label>
+                    <select id="nmPypInsCo"></select>
+                </div>
+                <div class="form-col">
+                    <label>PYP Policy No</label>
+                    <input id="nmPypPolicyNo">
+                </div>
+                <div class="form-col">
+                    <label>PYP Expiry Date</label>
+                    <input type="date" id="nmPypExpiryDate">
+                </div>
+                <div class="form-col">
+                    <label>Claim in PYP?</label>
+                    <select id="nmPypClaim">
+                        <option value="No">No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="crm-card">
+            <h3>Payment & Documentation</h3>
+            
+            <div class="form-row auto-4-col">
+                <div class="form-col">
+                    <label>Premium Amt *</label>
+                    <input id="nmPremiumAmt" placeholder="Prem. Amt.">
+                </div>
+                <div class="form-col">
+                    <label>Amount Received Date</label>
+                    <input type="date" id="nmAmountDate">
+                </div>
+                <div class="form-col">
+                    <label>Payment Mode</label>
+                    <select id="nmPayMode"></select>
+                </div>
+                <div class="form-col">
+                    <label>Cheque / UPI Ref</label>
+                    <input id="nmChequeNo">
+                </div>
+            </div>
+
+            <div class="form-row">
+                 <div class="form-col" style="max-width: 33%;">
+                    <label>Bank Name</label>
+                    <select id="nmBankName">
+                        <option value="">-- Select Bank --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row auto-4-col" style="margin-top: 10px;">
+                <div class="form-col">
+                    <label>Policy PDF <span id="policy-view"></span></label>
+                    <div class="attachment-btn" onclick="triggerUpload('policy')">Upload Policy</div>
+                    <input type="file" id="policy-file" onchange="uploadFile('policy')" style="display: none;" />
+                </div>
+                <div class="form-col">
+                    <label>Proposal Form <span id="proposal-view"></span></label>
+                    <div class="attachment-btn" onclick="triggerUpload('proposal')">Upload Proposal</div>
+                     <input type="file" id="proposal-file" onchange="uploadFile('proposal')" style="display: none;" />
+                </div>
+                <div class="form-col">
+                    <label>KYC Docs <span id="kyc-view"></span></label>
+                    <div class="attachment-btn" onclick="triggerUpload('kyc')">Upload KYC</div>
+                     <input type="file" id="kyc-file" onchange="uploadFile('kyc')" style="display: none;" />
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 25px;">
+            <button onclick="saveNonMotor()" type="button" class="crm-button-primary" style="min-width: 250px;">💾 Save Non-Motor Entry</button>
+        </div>
+    </form>
+
+    <div class="crm-card" style="margin-top:30px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom:10px;">
+            <h3>Recent Non-Motor Records</h3>
+            <button class="crm-button-accent small-btn" onclick="loadRecentNonMotor()">🔄 Refresh</button>
+        </div>
+        
+        <table class="crm-table" style="width:100%;">
+            <thead style="background:#f4f4f4;">
+                <tr>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Policy No</th>
+                    <th>Insurer</th>
+                    <th>Premium</th>
+                    <th>End Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="nmTableBody"></tbody>
+        </table>
+    </div>
+</div> 
+
+<script>
+/* =================== CONFIG & API =================== */
+    // Use a relative path for the API base. This works for both local and production.
+    // Assumes frontend and backend are on the same domain.
+const API_BASE = "";
+
+const API_URLS = {
+    PARTNER: `${API_BASE}/api/master/partner`,
+    NM_PRODUCT_MASTER: `${API_BASE}/api/master/item/nonmotorproduct`, 
+    INS_CO: `${API_BASE}/api/master/item/insurancecompany`,
+    PAY_MODE: `${API_BASE}/api/master/item/paymentmode`,
+    BANK_MASTER: `${API_BASE}/api/master/bank`, 
+    NM_DEALER_LIST: `${API_BASE}/api/expenses/nonmotor/dealer/list`,
+    NM_SAVE: `${API_BASE}/api/nonmotor`,                      
+    NM_RECENT: `${API_BASE}/api/nonmotor/recent`,
+    CUSTOMER_SEARCH: `${API_BASE}/api/gic/autocomplete?q=`
+};
+
+/* =================== TOAST NOTIFICATION =================== */
+function showToast(msg, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span>${msg}</span> <span style="margin-left:10px; cursor:pointer;" onclick="this.parentElement.remove()">✖</span>`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 5000);
+}
+
+/* =================== UTILS =================== */
+function el(id) { return document.getElementById(id); }
+function val(id) { var element = document.getElementById(id); return element ? element.value : ''; }
+function val_set(id, value) { var element = document.getElementById(id); if(element) element.value = value; }
+
+/* =================== LOAD MASTERS =================== */
+async function fetchJson(url, options = {}) {
+    try {
+        const res = await fetch(url, options);
+        return await res.json();
+    } catch (err) { console.error("API Error:", url, err); return null; }
+}
+
+async function loadDropdown(url, elementId, keyName) {
+    const json = await fetchJson(url);
+    const element = el(elementId);
+    if (!element) return;
+    
+    if(!element.multiple) element.innerHTML = '<option value="">-- Select --</option>';
+    else element.innerHTML = '';
+
+    const list = (json && Array.isArray(json.data)) ? json.data : (Array.isArray(json) ? json : []);
+    
+    list.forEach(item => {
+        if(item.status === 'Active' || !item.status) {
+            const opt = document.createElement('option');
+            const val = item.meta && item.meta[keyName] ? item.meta[keyName] : (item[keyName] || item.name || item.label);
+            
+            if(val) {
+                opt.value = val; 
+                opt.textContent = val;
+                element.appendChild(opt);
+            }
+        }
+    });
+}
+
+// ✅ FIXED: Dedicated Bank Loader (Same as Health Page)
+async function loadBankNames() {
+    const json = await fetchJson(API_URLS.BANK_MASTER);
+    const sel = el('nmBankName');
+    if (!sel) return;
+
+    sel.innerHTML = '<option value="">-- Select Bank --</option>';
+    let rows = (json && (Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : []))) || [];
+    
+    rows.filter(b => (b.status || '').toLowerCase() === 'active').forEach(b => {
+        const bankName = b.name || b.bankName || b.bank_name || b.label;
+        if (bankName) {
+            const opt = document.createElement("option");
+            opt.value = bankName; opt.textContent = bankName;
+            sel.appendChild(opt);
+        }
+    });
+}
+
+async function loadNonMotorProducts() {
+    const json = await fetchJson(API_URLS.NM_PRODUCT_MASTER);
+    const element = el('nmProduct');
+    element.innerHTML = '<option value="">-- Select Product --</option>';
+    
+    const list = (json && Array.isArray(json.data)) ? json.data : [];
+    list.forEach(item => {
+        if(item.status === 'Active') {
+            const opt = document.createElement('option');
+            const prodName = item.meta?.nonmotor || item.name;
+            opt.value = prodName;
+            opt.textContent = prodName;
+            element.appendChild(opt);
+        }
+    });
+}
+
+async function initMasters() {
+    await Promise.all([
+        loadDropdown(API_URLS.PARTNER, 'nmPartner', 'name'),
+        loadDropdown(API_URLS.INS_CO, 'nmInsCompany', 'companyName'),
+        loadDropdown(API_URLS.INS_CO, 'nmPypInsCo', 'companyName'),
+        loadDropdown(API_URLS.PAY_MODE, 'nmPayMode', 'mode'),
+        loadBankNames(), // ✅ Uses dedicated bank loader
+        loadNonMotorProducts() 
+    ]);
+    
+    el('nmIssueDate').value = new Date().toISOString().split('T')[0];
+    el('nmAmountDate').value = new Date().toISOString().split('T')[0]; // Set default amount date
+    loadRecentNonMotor();
+}
+
+/* =================== CUSTOMER & SEARCH =================== */
+function openCustomerPopup() {
+    window.open("universal-customer.html", "CustPopup", "width=550,height=700,scrollbars=yes,resizable=yes");
+}
+
+window.addEventListener("message", (e) => {
+    if (e.data && e.data.type === 'CUSTOMER_SAVED') {
+        fillCustomerData(e.data.payload);
+        showToast(`Customer Selected: ${e.data.payload.name}`, "success");
+    }
+});
+
+el('searchBox').addEventListener('input', async (e) => {
+    const q = e.target.value;
+    const list = el('searchList');
+    if (q.length < 2) { list.innerHTML = ''; return; }
+
+    const data = await fetchJson(API_URLS.CUSTOMER_SEARCH + q);
+    list.innerHTML = '';
+    
+    if (data.customers) {
+        data.customers.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            div.innerHTML = `<b>${c.name}</b> <small>${c.mobile} | ${c.address}</small>`;
+            div.onclick = () => {
+                fillCustomerData(c);
+                list.innerHTML = '';
+                el('searchBox').value = '';
+            };
+            list.appendChild(div);
+        });
+    }
+});
+
+function fillCustomerData(c) {
+    el('customerId').value = c._id || c.id;
+    el('nmSno').value = c.sno || '';
+    el('nmCustomerName').value = c.name;
+    el('nmCustomerAddress').value = c.address;
+    el('nmCustomerMobile').value = c.mobile || '';
+    el('nmCustomerEmail').value = c.email || '';
+    
+    if (c.partner) {
+       const pSel = el('nmPartner');
+       for(let i=0; i<pSel.options.length; i++) {
+           if(pSel.options[i].text === c.partner) pSel.selectedIndex = i;
+       }
+    }
+}
+
+/* =================== 🚀 SMART DEALER LOGIC =================== */
+const dealerInput = el('nmDealerName');
+const dealerBox = document.createElement('div');
+dealerBox.className = 'smart-suggestion-box';
+dealerInput.parentNode.appendChild(dealerBox);
+let cachedDealers = [];
+
+// Clear dealer if Product changes
+el('nmProduct').addEventListener('change', () => {
+    dealerInput.value = '';
+    el('nmInsCompany').value = '';
+    dealerBox.style.display = 'none';
+});
+
+// Trigger Dealer Refresh when Risk Start Date changes
+el('nmStartDate').addEventListener('change', (e) => {
+    const startVal = e.target.value;
+    if (startVal) {
+        const d = new Date(startVal);
+        d.setFullYear(d.getFullYear() + 1); 
+        d.setDate(d.getDate() - 1);         
+        el('nmEndDate').value = d.toISOString().split('T')[0];
+    }
+    if(dealerInput.value || dealerBox.style.display === 'block') {
+         renderDealerSuggestions(dealerInput.value);
+    }
+});
+
+dealerInput.addEventListener('focus', async () => {
+    const selectedProduct = val('nmProduct');
+    const riskDate = val('nmStartDate');
+
+    if(!selectedProduct) {
+        showToast("⚠️ Please select a Product first", "warning");
+        dealerInput.blur();
+        return; 
+    }
+    
+    if(!riskDate) {
+        showToast("⚠️ Please select Risk Start Date first", "warning");
+        dealerInput.blur();
+        return;
+    }
+
+    dealerBox.style.display = 'block';
+    if(cachedDealers.length === 0) {
+        dealerBox.innerHTML = '<div style="padding:10px;">Loading Dealers...</div>';
+        const res = await fetchJson(API_URLS.NM_DEALER_LIST); 
+        cachedDealers = res.data || [];
+    }
+    renderDealerSuggestions(dealerInput.value);
+});
+
+dealerInput.addEventListener('input', (e) => {
+    dealerBox.style.display = 'block';
+    renderDealerSuggestions(e.target.value);
+});
+
+dealerInput.addEventListener('blur', () => setTimeout(() => dealerBox.style.display='none', 250));
+
+function renderDealerSuggestions(filterText) {
+    const selectedProduct = val('nmProduct').trim().toLowerCase();
+    const riskDateVal = val('nmStartDate');
+    const riskDateObj = riskDateVal ? new Date(riskDateVal) : null;
+
+    dealerBox.innerHTML = '';
+    let found = false;
+    
+    if (!riskDateObj) {
+         dealerBox.innerHTML = '<div class="no-record">Enter Risk Start Date</div>';
+         return;
+    }
+
+    let candidates = [];
+    cachedDealers.forEach(record => {
+        let dateStr = record.date;
+        if (dateStr && typeof dateStr === 'object' && dateStr.$date) dateStr = dateStr.$date;
+        if (!dateStr) return; 
+
+        const effDate = new Date(dateStr);
+        if (effDate > riskDateObj) return;
+
+        const dealerName = record.dealerName || record.dealer;
+        const rules = record.rules || record.items || []; 
+
+        rules.forEach(rule => {
+            const ruleProduct = (rule.product || '').trim().toLowerCase();
+            if (ruleProduct === selectedProduct) {
+                candidates.push({
+                    dealerName: dealerName,
+                    company: rule.company,
+                    effectiveDate: effDate
+                });
+            }
+        });
+    });
+
+    candidates.sort((a, b) => b.effectiveDate - a.effectiveDate);
+    const uniqueSet = new Set();
+
+    candidates.forEach(item => {
+        const isSearchMatch = item.dealerName.toLowerCase().includes(filterText.toLowerCase()) || 
+                              item.company.toLowerCase().includes(filterText.toLowerCase());
+
+        if (isSearchMatch) {
+            const key = `${item.dealerName}-${item.company}`;
+            if (!uniqueSet.has(key)) {
+                uniqueSet.add(key);
+                found = true;
+
+                const d = item.effectiveDate;
+                const dd = String(d.getDate()).padStart(2, '0');
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const yy = String(d.getFullYear()).slice(-2);
+                const dateDisplay = `${dd}-${mm}-${yy}`;
+
+                const div = document.createElement('div');
+                div.className = 'smart-suggestion-item';
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; width:100%; align-items: center;">
+                        <div>
+                            <b>${item.dealerName}</b>
+                            <div style="font-size:10px; color:#666; margin-top:2px;">
+                                Eff: <span style="color:#d9534f; font-weight:600;">${dateDisplay}</span>
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="color:#007bff; font-weight:500; background:#f0f8ff; padding: 2px 5px; border-radius: 4px; font-size:11px;">
+                                ${item.company}
+                            </span>
+                        </div>
+                    </div>`;
+                
+                div.onmousedown = () => {
+                    el('nmDealerName').value = item.dealerName;
+                    const insSel = el('nmInsCompany');
+                    let insFound = false;
+                    for(let i=0; i<insSel.options.length; i++){
+                        if(insSel.options[i].text.toUpperCase() === item.company.toUpperCase()) {
+                            insSel.selectedIndex = i;
+                            insFound = true;
+                        }
+                    }
+                    dealerBox.style.display = 'none';
+                    showToast(`Dealer Linked: ${item.dealerName} (IC: ${item.company})`, "success");
+                    if(!insFound) showToast(`⚠️ Insurer '${item.company}' not found in dropdown`, "warning");
+                };
+                dealerBox.appendChild(div);
+            }
+        }
+    });
+
+    if(!found) dealerBox.innerHTML = `<div class="no-record">No payout found for ${val('nmProduct')} on/before ${riskDateVal}</div>`;
+}
+
+function triggerUpload(type) {
+    el(`${type}-file`).click();
+}
+
+async function uploadFile(type) {
+    const fileInput = el(`${type}-file`);
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const id = val('nmId');
+    if (!id) {
+        showToast("Please save the entry before uploading files.", "warning");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    showToast(`Uploading ${type}...`, 'info');
+
+    const res = await fetchJson(`${API_URLS.NM_SAVE}/upload/${id}/${type}`, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (res && res.success) {
+        showToast(`${type} uploaded successfully.`, "success");
+        update_view_link(type, res.filePath);
+    } else {
+        showToast(`Failed to upload ${type}.`, "error");
+    }
+}
+
+function update_view_link(type, path) {
+    const span = el(`${type}-view`);
+    if(span) {
+        span.innerHTML = `(<a href="${API_BASE}/${path}" target="_blank" class="view-link">View</a>)`;
+    }
+}
+
+/* =================== CALCULATION =================== */
+function calcTotal() {
+    const net = parseFloat(val('nmNetPremium')) || 0;
+    const gst = parseFloat(val('nmGst')) || 0;
+    const total = Math.round(net + gst);
+    el('nmTotalPremium').value = total;
+    el('nmPremiumAmt').value = total; // Auto-fill Premium Amt as well
+}
+el('nmNetPremium').addEventListener('input', calcTotal);
+el('nmGst').addEventListener('input', calcTotal);
+
+/* =================== SAVE & CRUD =================== */
+async function saveNonMotor() {
+    const btn = document.querySelector('button[onclick="saveNonMotor()"]');
+    btn.innerText = "⏳ Saving..."; btn.disabled = true;
+
+    const payload = {
+        customerId: val('customerId'),
+        customerName: val('nmCustomerName'),
+        partner: val('nmPartner'),
+        product: val('nmProduct'),
+        policyNo: val('nmPolicyNo'),
+        endorsementNo: val('nmEndNo'),
+        policyType: val('nmPolicyType'),
+        insuranceCompany: val('nmInsCompany'),
+        dealerName: val('nmDealerName'),
+        sumInsured: val('nmSumInsured'),
+        startDate: val('nmStartDate'),
+        endDate: val('nmEndDate'),
+        issueDate: val('nmIssueDate'),
+        netPremium: val('nmNetPremium'),
+        gst: val('nmGst'),
+        totalPremium: val('nmTotalPremium'),
+        previousPolicy: {
+            insCo: val('nmPypInsCo'), 
+            policyNo: val('nmPypPolicyNo'), 
+            expiryDate: val('nmPypExpiryDate'), 
+            claimStatus: val('nmPypClaim')
+        },
+        payment: {
+            amount: val('nmPremiumAmt'),
+            date: val('nmAmountDate'),
+            mode: val('nmPayMode'), 
+            chequeNo: val('nmChequeNo'), 
+            bank: val('nmBankName') 
+        }
+    };
+
+    try {
+        const id = val('nmId');
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_URLS.NM_SAVE}/${id}` : API_URLS.NM_SAVE;
+
+        const res = await fetch(url, {
+            method: method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        
+        const json = await res.json();
+        if(json.success) {
+            showToast("Saved Successfully", "success");
+            val_set('nmId', json.data._id); // Store new ID
+            resetForm();
+            loadRecentNonMotor();
+        } else {
+            showToast("Error: " + (json.message || "Save failed"), "error");
+        }
+    } catch(e) {
+        showToast("Server Error", "error");
+    } finally {
+        btn.innerText = "💾 Save Non-Motor Entry"; btn.disabled = false;
+    }
+}
+
+function resetForm() {
+    document.getElementById('nmEntryForm').reset();
+    el('nmId').value = '';
+    el('policy-view').innerHTML = '';
+    el('proposal-view').innerHTML = '';
+    el('kyc-view').innerHTML = '';
+}
+
+async function loadRecentNonMotor() {
+    const tbody = el('nmTableBody');
+    tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+    
+    const res = await fetchJson(API_URLS.NM_RECENT);
+    
+    if(!res || !res.success || !res.data) {
+        tbody.innerHTML = '<tr><td colspan="7">No records found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = '';
+    res.data.forEach(item => {
+        tbody.innerHTML += `
+            <tr id="row-${item._id}">
+                <td>${item.customerName}</td>
+                <td>${item.product}</td>
+                <td>${item.policyNo}</td>
+                <td>${item.insuranceCompany}</td>
+                <td>${item.totalPremium}</td>
+                <td>${item.endDate ? item.endDate.split('T')[0] : ''}</td>
+                <td>
+                    <button onclick="editNonMotor('${item._id}')" style="border:none;background:none;cursor:pointer;">✏️</button>
+                    <button onclick="deleteNonMotor('${item._id}')" style="border:none;background:none;cursor:pointer;color:red;">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+async function editNonMotor(id) {
+    const res = await fetchJson(`${API_URLS.NM_SAVE}/${id}`);
+    if (res && res.success) {
+        const d = res.data;
+        val_set('nmId', d._id);
+        val_set('customerId', d.customer);
+        val_set('nmCustomerName', d.customerName);
+        val_set('nmPartner', d.partner);
+        val_set('nmProduct', d.product);
+        val_set('nmPolicyNo', d.policyNo);
+        val_set('nmEndNo', d.endorsementNo);
+        val_set('nmPolicyType', d.policyType);
+        val_set('nmInsCompany', d.insuranceCompany);
+        val_set('nmDealerName', d.dealerName);
+        val_set('nmSumInsured', d.sumInsured);
+        val_set('nmStartDate', d.startDate ? d.startDate.split('T')[0] : '');
+        val_set('nmEndDate', d.endDate ? d.endDate.split('T')[0] : '');
+        val_set('nmIssueDate', d.issueDate ? d.issueDate.split('T')[0] : '');
+        val_set('nmNetPremium', d.netPremium);
+        val_set('nmGst', d.gst);
+        val_set('nmTotalPremium', d.totalPremium);
+
+        if(d.previousPolicy) {
+            val_set('nmPypInsCo', d.previousPolicy.insCo);
+            val_set('nmPypPolicyNo', d.previousPolicy.policyNo);
+            val_set('nmPypExpiryDate', d.previousPolicy.expiryDate ? d.previousPolicy.expiryDate.split('T')[0] : '');
+            val_set('nmPypClaim', d.previousPolicy.claimStatus);
+        }
+
+        if(d.payment) {
+            val_set('nmPremiumAmt', d.payment.amount);
+            val_set('nmAmountDate', d.payment.date ? d.payment.date.split('T')[0] : '');
+            val_set('nmPayMode', d.payment.mode);
+            val_set('nmChequeNo', d.payment.chequeNo);
+            val_set('nmBankName', d.payment.bank);
+        }
+        
+        if(d.attachments) {
+            if(d.attachments.policy) update_view_link('policy', d.attachments.policy);
+            if(d.attachments.proposal) update_view_link('proposal', d.attachments.proposal);
+            if(d.attachments.kyc) update_view_link('kyc', d.attachments.kyc);
+        }
+
+        window.scrollTo(0, 0);
+        showToast("Editing record...", "info");
+    } else {
+        showToast("Failed to load record for editing.", "error");
+    }
+}
+
+async function deleteNonMotor(id) {
+    if (!confirm("Are you sure you want to delete this record?")) return;
+
+    const res = await fetchJson(`${API_URLS.NM_SAVE}/${id}`, { method: 'DELETE' });
+    if (res && res.success) {
+        showToast("Record deleted successfully.", "success");
+        const row = el(`row-${id}`);
+        if(row) row.remove();
+    } else {
+        showToast("Failed to delete record.", "error");
+    }
+}
+
+// START
+document.addEventListener('DOMContentLoaded', initMasters);
+
+</script>
+</body>
+</html>

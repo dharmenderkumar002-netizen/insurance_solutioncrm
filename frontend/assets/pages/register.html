@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Insurance CRM - Register</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* LEFT SIDE */
+    .left-side {
+      flex: 1;
+      background: #024873;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .left-side .logo {
+      width: 180px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .right-side {
+      flex: 1;
+      background: white;
+      padding: 60px 50px;
+      overflow-y: auto;
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      color: #024873;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    .input-group label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #024873;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 17px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn:hover {
+      background-color: #046093;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+      display: none;
+      margin-bottom: 10px;
+    }
+
+    .login-text {
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <!-- LEFT SECTION -->
+    <div class="left-side">
+      <img src="../images/logo.png" class="logo" alt="Logo">
+      <h1>Insurance Solution</h1>
+      <p>Helping You Is Our Duty</p>
+    </div>
+
+    <!-- RIGHT SIDE (FORM) -->
+    <div class="right-side">
+
+      <h2>New User Registration</h2>
+
+      <div id="error" class="error"></div>
+
+      <form id="registerForm">
+
+        <div class="input-group">
+          <label>Name *</label>
+          <input type="text" id="name" placeholder="Enter Full Name">
+        </div>
+
+        <div class="input-group">
+          <label>Mobile Number *</label>
+          <input type="text" id="mobile" maxlength="10" placeholder="10 Digit Mobile Number">
+        </div>
+
+        <div class="input-group">
+          <label>Email ID *</label>
+          <input type="email" id="email" placeholder="Enter Email Address">
+        </div>
+
+        <div class="input-group">
+          <label>Create Password *</label>
+          <input type="password" id="password" placeholder="Enter Password">
+        </div>
+
+        <button type="submit" class="btn">Register</button>
+
+      </form>
+
+      <p class="login-text">
+        Already have an account?
+        <a href="./login.html">Login Here</a>
+      </p>
+
+    </div>
+  </div>
+
+  <script src="../js/auth.js"></script>
+  <script>
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      registerUser();
+    });
+  </script>
+
+</body>
+
+</html>

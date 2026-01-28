@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    // Redirect to main layout if not in an iframe.
+    // This prevents direct access to the page.
+    if (window.self === window.top) {
+        // The path to layout.html from this page.
+        window.location.href = 'layout.html';
+    }
+</script>
+    <meta charset="UTF-8">
+    <title>Dashboard – Insurance Solution CRM</title>
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/gic.css">
+    <link rel="stylesheet" href="../assets/css/sidebar.css">
+    <script src="../assets/js/main.js" defer></script>
+</head>
+
+<body onload="loadUser();">
+
+<!-- ============ SIDEBAR ============= -->
+<div class="sidebar">
+
+    <div class="logo">
+        <img src="../assets/images/logo.png" alt="logo">
+    </div>
+
+    <a href="home.html">🏠 Home</a>
+
+    <a href="gic.html">🛠 Service Transaction</a>
+
+    <a href="track/track-all.html">📊 Track Service</a>
+
+    <a href="renewals/gic-renewals.html">⏳ Renewals Due</a>
+
+    <a href="reports/agent-reports.html">🧾 Agent Reports</a>
+
+    <a href="customers.html">👥 Customers</a>
+
+    <a href="expenses/dealer-expenses.html">💰 Expenses</a>
+
+    <a href="master/add-partner.html">⚙ Master</a>
+
+    <a href="settings/change-password.html">🔐 Change Password</a>
+
+    <a href="#" onclick="logout()">🚪 Logout</a>
+
+</div>
+
+<!-- ============ PAGE CONTENT ============= -->
+<div class="page-content">
+
+    <h2>Welcome to Insurance Solution CRM</h2>
+    <p id="welcomeUser" style="font-size:18px; font-weight:bold;"></p>
+
+    <div class="container">
+        <div class="table-box">
+            <h3>Quick Links</h3>
+            <ul>
+                <li><a href="gic.html">Add GIC Entry</a></li>
+                <li><a href="health.html">Add Health Entry</a></li>
+                <li><a href="lic.html">Add LIC Entry</a></li>
+                <li><a href="nonmotor.html">Add Non Motor Entry</a></li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

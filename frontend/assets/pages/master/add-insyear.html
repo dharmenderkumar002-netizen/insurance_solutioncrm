@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Insurance Year - Master CRM</title>
+    
+    <link rel="stylesheet" href="../../../assets/css/main.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="../../../assets/js/main.js" defer></script>
+
+    <style>
+        /* Compact spacing for professional master forms */
+        .form-row {
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        .form-col {
+            flex-grow: 1;
+            flex-basis: 45%; 
+        }
+        input, select {
+            padding: 8px 10px;
+            min-height: 38px; 
+        }
+        label {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .master-table th, .master-table td {
+            font-size: 14px;
+        }
+        /* Style for the helper button */
+        .fy-helper-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body style="padding: 0; background: transparent;">
+
+<div class="page-content" style="padding: 15px;">
+    <div class="crm-card">
+        <h3>ADD INSURANCE YEAR</h3>
+        <form id="insYearForm">
+            <div class="form-row">
+                <div class="form-col" style="flex-basis: 30%;">
+                    <label for="sno">S.No *</label>
+                    <input type="text" id="sno" value="1" readonly>
+                </div>
+                <div class="form-col" style="flex-basis: 60%;">
+                    <label for="insYearName">Insurance Year *</label>
+                    <input type="text" id="insYearName" placeholder="e.g. FY 2025-26, 1 Year" list="fySuggestions">
+                    
+                    <datalist id="fySuggestions"></datalist>
+
+                    <div class="fy-helper-container">
+                        <button type="button" onclick="generateFinancialYears()" class="crm-button-accent" style="height: 30px; padding: 4px 8px;">
+                            🔄 Generate FY Options
+                        </button>
+                        <span id="fyMessage" style="font-size: 12px; color: #007bff;"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-col" style="flex-basis: 30%;">
+                    <label for="status">Status *</label>
+                    <select id="status">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-col" style="flex-basis: 60%;">
+                    <label for="date">Date *</label>
+                    <input type="date" id="date">
+                </div>
+            </div>
+
+            <div style="text-align: left; padding-top: 20px;">
+                <button type="button" onclick="saveInsYear()" class="crm-button-primary">Save</button>
+                <button type="button" onclick="resetForm()" class="crm-button-accent">Add New</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="crm-card table-responsive">
+        <h3>Insurance Year Records</h3>
+        <table id="insYearTable" class="master-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Insurance Year</th>
+                    <th>Status</th>
+                    <th>Saved Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// --- Configuration ---
+// Assuming server runs on localhost:4000
+const API_BASE = "http://localhost:4000";
+const INS_YEAR_API_URL = `${API_BASE}/api/master/item/insuranceyear`; 
+
+// --- Utility Functions ---
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    } catch (e) {
+        return dateString;
+    }
+}
+
+function resetForm() {
+    document.getElementById('insYearForm').reset();
+    document.getElementById('status').value = 'Active';
+    document.getElementById('fySuggestions').innerHTML = ''; // Clear suggestions on reset
+    document.getElementById('fyMessage').textContent = '';
+    initInsYearMaster(); 
+}
+
+// --- Financial Year Generation Function ---
+function generateFinancialYears() {
+    const yearSuggestions = document.getElementById('fySuggestions');
+    yearSuggestions.innerHTML = '';
+    
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth(); // 0 = Jan, 3 = Apr
+    
+    let startYear;
+
+    // Determine the start year for the current financial year (FY runs Apr 1 - Mar 31)
+    if (currentMonth >= 3) { // April (3) to Dec (11)
+        startYear = currentYear;
+    } else { // Jan (0) to March (2)
+        startYear = currentYear - 1;
+    }
+    
+    const financialYears = [];
+    const numYears = 6; // Current FY + 5 previous FYs
+
+    for (let i = 0; i < numYears; i++) {
+        const yearStart = startYear - i;
+        const yearEnd = yearStart + 1;
+        const yearShort = yearEnd.toString().slice(-2);
+        
+        // Format: FY YYYY-YY (e.g., FY 2025-26)
+        const fyFormat = `FY ${yearStart}-${yearShort}`;
+        financialYears.push(fyFormat);
+    }
+    
+    // Load the calculated years into the datalist
+    financialYears.forEach(year => {
+        const option = document.createElement('option');
+        option.value = year;
+        yearSuggestions.appendChild(option);
+    });
+
+    document.getElementById('fyMessage').textContent = `${financialYears.length} options loaded. Click on input field.`;
+}
+
+
+// --- Master Logic ---
+
+/**
+ * Collects data from the form fields.
+ * Sends 'name' field for compatibility with generic master APIs.
+ */
+function collectInsYearData() {
+    const insYearValue = document.getElementById('insYearName').value.trim();
+    
+    return {
+        // Send the primary value under the 'name' field
+        name: insYearValue, 
+        
+        // Retain specific field for database clarity
+        insuranceYear: insYearValue, 
+        
+        sno: document.getElementById('sno').value,
+        status: document.getElementById('status').value,
+        date: document.getElementById('date').value
+    };
+}
+
+/**
+ * Saves the insurance year data.
+ */
+async function saveInsYear() {
+    const data = collectInsYearData();
+    if (!data.name || !data.date) {
+        alert("Please fill in all required fields (Insurance Year and Date).");
+        return;
+    }
+
+    try {
+        console.log("Saving Insurance Year, Payload:", data);
+        
+        const response = await fetch(INS_YEAR_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error(`API save failed with status: ${response.status}`);
+        }
+
+        alert("Insurance Year saved successfully!");
+        resetForm();
+        loadInsYears(); 
+
+    } catch (error) {
+        console.error("Save Error:", error);
+        alert("Failed to save Insurance Year. Check API connection.");
+    }
+}
+
+/**
+ * Loads and renders the Insurance Year table data.
+ */
+async function loadInsYears() {
+    const tableBody = document.querySelector('#insYearTable tbody');
+    tableBody.innerHTML = '<tr><td colspan="5">Loading records...</td></tr>';
+    
+    try {
+        const response = await fetch(INS_YEAR_API_URL);
+        if (!response.ok) {
+            console.warn(`[InsYear Master] API Failed (${response.status}). URL: ${INS_YEAR_API_URL}`);
+            // Do not throw error here, just show failure message in the table
+            tableBody.innerHTML = '<tr><td colspan="5" style="color:red;">Error loading records (API Failed).</td></tr>';
+            document.getElementById('sno').value = 1; 
+            return;
+        }
+        
+        const json = await response.json();
+        const records = json.data || []; 
+
+        tableBody.innerHTML = ''; 
+
+        if (records.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="5">No Insurance Year records found.</td></tr>';
+            document.getElementById('sno').value = 1; 
+            return;
+        }
+
+        let maxSno = 0;
+
+        records.forEach((record, index) => {
+            const row = tableBody.insertRow();
+            maxSno = Math.max(maxSno, index + 1);
+            
+            const yearName = record.name || record.insuranceYear || 'N/A';
+            
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${yearName}</td>
+                <td>${record.status || 'Active'}</td>
+                <td>${formatDate(record.date || record.savedDate)}</td>
+                <td>
+                    <button class="crm-button-edit" onclick="editInsYear('${record._id || index}')">Edit</button>
+                    <button class="crm-button-delete" onclick="deleteInsYear('${record._id || index}')">Delete</button>
+                </td>
+            `;
+        });
+
+        document.getElementById('sno').value = maxSno + 1;
+
+    } catch (error) {
+        console.error("Load Error:", error);
+        tableBody.innerHTML = '<tr><td colspan="5" style="color:red;">Error loading records. Check API connection.</td></tr>';
+        document.getElementById('sno').value = 1; 
+    }
+}
+
+/**
+ * Initializes the form fields on load.
+ */
+function initInsYearMaster() {
+    const today = new Date();
+    document.getElementById('date').value = formatDate(today);
+    loadInsYears();
+    // Optional: Generate FY options automatically on load
+    // generateFinancialYears();
+}
+
+// Placeholder functions
+function editInsYear(id) { alert(`Edit triggered for ID: ${id}`); }
+function deleteInsYear(id) { if (confirm(`Delete ID: ${id}?`)) { alert("Delete implementation needed."); } }
+
+// --- Initialization on page load ---
+document.addEventListener('DOMContentLoaded', initInsYearMaster);
+
+</script>
+
+</body>
+</html>

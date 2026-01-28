@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Insurance CRM - Login</title>
+  
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+    }
+
+    .login-container {
+      display: flex;
+      height: 100vh;
+    }
+
+    .left-side {
+      flex: 1;
+      background: #024873;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .left-side .logo {
+      width: 180px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      background: white;
+      min-height: 50px;
+    }
+
+    .right-side {
+      flex: 1;
+      background: white;
+      padding: 70px 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #024873;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    .input-group label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #024873;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 17px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn:hover {
+      background-color: #046093;
+    }
+
+    .error {
+      display: none;
+      color: red;
+      font-weight: bold;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #ffe6e6;
+      border: 1px solid red;
+      border-radius: 4px;
+    }
+
+    .register-text {
+      margin-top: 15px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="login-container">
+
+    <div class="left-side">
+      <img src="../images/logo.png" class="logo" alt="Logo">
+      <h1>Insurance Solution</h1>
+      <p>Helping You Is Our Duty</p>
+    </div>
+
+    <div class="right-side">
+      <h2>Sign In</h2>
+
+      <div id="error" class="error"></div>
+
+      <form id="loginForm">
+
+        <div class="input-group">
+          <label>Email *</label>
+          <input type="text" id="email" placeholder="Enter Email" required>
+        </div>
+
+        <div class="input-group">
+          <label>Password *</label>
+          <input type="password" id="password" placeholder="Enter Password" required>
+        </div>
+
+        <div class="input-group">
+          <label>Captcha *</label>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <canvas id="captcha" width="150" height="40" style="border: 1px solid #ccc; border-radius: 6px; background: #fff;"></canvas>
+            <button type="button" id="reload-captcha" style="padding: 10px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; margin-left: 10px;">&#x21bb;</button>
+          </div>
+          <input type="text" id="captcha-input" placeholder="Enter Captcha" style="margin-top: 10px;" required>
+        </div>
+
+        <button type="submit" class="btn">Sign In</button>
+
+      </form>
+
+      <p class="register-text">
+        New User?
+        <a href="./register.html">Register Now</a>
+      </p>
+    </div>
+
+  </div>
+
+  <!-- Link to auth.js which handles login logic and captcha -->
+  <script src="../js/auth.js"></script>
+
+</body>
+</html>

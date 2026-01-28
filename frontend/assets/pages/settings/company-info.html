@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Company Info</title>
+  <link rel="stylesheet" href="../../assets/css/main.css">
+  <link rel="stylesheet" href="../../assets/css/sidebar.css">
+  <script src="../../assets/js/main.js" defer></script>
+  <script src="../../assets/js/settings.js" defer></script>
+</head>
+<body onload="requireLogin(); loadCompanyInfo()">
+
+<div class="sidebar">
+  <a href="../home.html">Home</a>
+  <a href="users.html">Users</a>
+  <a href="company-info.html" style="background:#374151">Company Info</a>
+</div>
+
+<div class="page-content">
+  <h2>Company Info</h2>
+
+  <div class="table-box">
+    <label>Company Name</label><input id="compName">
+    <label>Address</label><input id="compAddress">
+    <label>Email</label><input id="compEmail">
+    <label>Phone</label><input id="compPhone">
+    <label>GSTIN</label><input id="compGstin">
+    <button onclick="saveCompany()">Save</button>
+  </div>
+</div>
+
+</body>
+</html>

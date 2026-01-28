@@ -1,0 +1,171 @@
+/* ========================================================================
+   forms.css
+   Clean, compact CRM form styles (validated)
+   ======================================================================== */
+
+/* COLORS & VARIABLES */
+:root{
+  --primary-dark: #013859;
+  --primary-light:#005a96;
+  --accent:#ff9800;
+  --bg:#f4f6f9;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --border:#d3d3d3;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --radius: 6px;
+}
+
+/* BASE */
+*{ box-sizing: border-box; }
+html,body{ height:100%; margin:0; font-family: "Inter", Arial, sans-serif; background:var(--bg); color:#222; }
+
+/* PAGE / CARD */
+.page-frame{ display:flex; justify-content:center; width:100%; }
+.page-content{ width:100%; max-width:1400px; padding:20px 28px; margin:0 auto; box-sizing:border-box; }
+
+.crm-card{
+  width:100%;
+  background:var(--card);
+  padding:14px 16px;
+  border-radius:10px;
+  box-shadow:var(--shadow);
+  border:1px solid #eee;
+  margin-bottom:14px;
+}
+
+/* HEADINGS */
+h2{ margin:0 0 12px; font-size:20px; color:var(--primary-dark); font-weight:600; }
+h3{ margin:0 0 10px; font-size:15px; padding-bottom:6px; border-bottom:1px solid #e6e6e6; color:var(--primary-dark); }
+
+/* LABELS & INPUTS */
+label{ display:block; margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:600; }
+input[type="text"], input[type="date"], input[type="number"], input[type="email"], select, textarea, input[type="search"]{
+  width:100%;
+  min-height:34px;
+  padding:7px 10px;
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  background:#fff;
+  font-size:13px;
+  margin:0;
+}
+textarea{ min-height:80px; padding:8px 10px; resize:vertical; }
+
+input:focus, select:focus, textarea:focus{
+  outline:none;
+  border-color:var(--primary-light);
+  box-shadow:0 0 0 3px rgba(0,90,150,0.07);
+}
+
+/* RADIO VISIBLE FIX */
+input[type="radio"]{
+  width:auto;
+  height:auto;
+  margin:0 6px 0 0;
+  padding:0;
+  display:inline-block;
+  cursor:pointer;
+}
+
+/* BUTTONS */
+.crm-button-primary, .crm-button-accent, .crm-button-small{
+  border:0;
+  border-radius:6px;
+  padding:8px 12px;
+  font-weight:600;
+  cursor:pointer;
+  font-size:13px;
+}
+.crm-button-primary{ background:var(--primary-dark); color:#fff; }
+.crm-button-accent{ background:var(--accent); color:#fff; }
+.crm-button-small{ padding:6px 10px; }
+
+/* FORM GRID (flex-based, responsive) */
+.form-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-bottom:12px;
+  align-items:flex-start;
+}
+
+.form-col{
+  display:flex;
+  flex-direction:column;
+  min-width:160px;
+  flex:1;
+}
+
+/* Column helpers (use on .form-col) */
+.col-100{ flex:1 1 100%; }
+.col-50 { flex:1 1 calc(50% - 12px); }
+.col-40 { flex:1 1 calc(40% - 12px); }
+.col-33 { flex:1 1 calc(33.33% - 12px); }
+.col-30 { flex:1 1 calc(30% - 12px); }
+.col-25 { flex:1 1 calc(25% - 12px); }
+.col-20 { flex:1 1 calc(20% - 12px); }
+.col-16 { flex:1 1 calc(16.66% - 12px); }
+
+/* Fixed small fields */
+.col-fixed-85 { flex:0 0 85px; max-width:85px; }
+.col-fixed-100{ flex:0 0 100px; max-width:100px; }
+
+/* Responsive fallback */
+@media (max-width:900px){
+  .form-row{ gap:10px; }
+  .col-16, .col-20, .col-25, .col-30, .col-33, .col-40, .col-fixed-85, .col-fixed-100{
+    flex:1 1 100% !important;
+    max-width:100% !important;
+  }
+  .page-content{ padding:14px; max-width:100%; }
+}
+
+/* RADIO GRID (GIC Product container) */
+.radio-grid-container{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 14px;
+  padding:8px;
+  border:1px solid #d0d0d0;
+  border-radius:8px;
+  background: #fff;
+  min-height:44px;
+  align-items:center;
+}
+.radio-grid-container label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:14px;
+  background:transparent;
+}
+.radio-grid-container label:hover{ background: rgba(0,0,0,0.02); }
+
+/* helper: attachment button */
+.attachment-btn{
+  display:inline-block;
+  padding:8px 10px;
+  border-radius:6px;
+  border:1px dashed var(--border);
+  cursor:pointer;
+  background:#fff;
+}
+
+/* compact table styles */
+.table-responsive{ overflow:auto; }
+.crm-table{ width:100%; border-collapse:collapse; font-size:13px; }
+.crm-table th, .crm-table td{ padding:8px; border-bottom:1px solid #eee; text-align:left; }
+
+/* small utilities */
+.mt-8{ margin-top:8px; }
+.mb-8{ margin-bottom:8px; }
+.text-center{ text-align:center; }
+
+/* ========================================================================
+   SAFETY / LINT-FRIENDLY RULES (no stray tokens, valid CSS)
+   ======================================================================== */
+/* End of file - no trailing stray characters */

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Add Coverage</title>
+<style>
+  body{font-family:Arial;background:#f4f6f9;padding:18px}
+  .box{background:#fff;padding:16px;border-radius:8px;max-width:980px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+  label{display:block;margin:8px 0 6px;font-weight:600}
+  input,select{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px}
+  .btn{padding:9px 14px;border:none;border-radius:6px;background:#013859;color:#fff;cursor:pointer;margin-right:8px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+  .action-btn{padding:6px 8px;border-radius:5px;border:none;cursor:pointer;font-size:13px}
+  .edit{background:#4CAF50;color:#fff}
+  .del{background:#d9534f;color:#fff}
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h2>ADD COVERAGE TYPE</h2>
+
+  <label>S.No *</label>
+  <input id="sno" readonly>
+
+  <label>Coverage *</label>
+  <input id="coverage" type="text">
+
+  <label>Status *</label>
+  <select id="status">
+      <option>Active</option>
+      <option>Inactive</option>
+  </select>
+
+  <label>Date *</label>
+  <input id="date" readonly>
+
+  <div style="margin-top:10px">
+    <button class="btn" id="saveBtn">Save</button>
+    <button class="btn" id="newBtn" style="background:#ff9800">Add New</button>
+  </div>
+</div>
+
+<div class="box" style="margin-top:14px">
+  <h3>Coverage Records</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>S.No</th>
+        <th>Coverage</th>
+        <th>Status</th>
+        <th>Saved Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+const TYPE = "coverage";  
+const API = `/api/master/item/${TYPE}`;
+let editId = null;
+
+// Set today's date
+function loadDate(){
+  document.getElementById("date").value = new Date().toISOString().split("T")[0];
+}
+
+// Load auto S.No
+async function loadSno(){
+  const res = await fetch(API);
+  const data = await res.json();
+  document.getElementById("sno").value = data.data.length + 1;
+}
+
+function resetForm(){
+  editId = null;
+  document.getElementById("coverage").value = "";
+  document.getElementById("status").value = "Active";
+  loadDate();
+  loadSno();
+}
+
+// Validate
+function validate(){
+  const coverage = document.getElementById("coverage").value.trim();
+  if(!coverage){ alert("Coverage is required"); return false; }
+  return true;
+}
+
+// Save Coverage
+async function saveCoverage(){
+  if(!validate()) return;
+
+  const payload = {
+    name: document.getElementById("coverage").value.trim(),
+    meta: { 
+      coverage: document.getElementById("coverage").value.trim()
+    },
+    status: document.getElementById("status").value,
+    date: document.getElementById("date").value
+  };
+
+  const url = editId ? `${API}/${editId}` : API;
+  const method = editId ? "PUT" : "POST";
+
+  const res = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const result = await res.json();
+
+  if(result.success){
+    resetForm();
+    loadList();
+  } else {
+    alert(result.message);
+  }
+}
+
+// Load Table
+async function loadList(){
+  const res = await fetch(API);
+  const data = await res.json();
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  data.data.forEach(item => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${item.s_no}</td>
+        <td>${item.meta.coverage}</td>
+        <td>${item.status}</td>
+        <td>${item.date}</td>
+        <td>
+          <button class="action-btn edit" onclick="edit('${item._id}')">Edit</button>
+          <button class="action-btn del" onclick="deleteItem('${item._id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+// Edit
+async function edit(id){
+  const res = await fetch(API);
+  const data = await res.json();
+  const item = data.data.find(x => x._id === id);
+  editId = id;
+
+  document.getElementById("sno").value = item.s_no;
+  document.getElementById("coverage").value = item.meta.coverage;
+  document.getElementById("status").value = item.status;
+  document.getElementById("date").value = item.date;
+}
+
+// Delete
+async function deleteItem(id){
+  if(!confirm("Delete coverage?")) return;
+  await fetch(`${API}/${id}`, { method:"DELETE" });
+  loadList();
+  loadSno();
+}
+
+document.getElementById("saveBtn").addEventListener("click", saveCoverage);
+document.getElementById("newBtn").addEventListener("click", resetForm);
+
+// INIT
+loadDate();
+loadSno();
+loadList();
+</script>
+
+<!-- Security Check -->
+<script src="../../js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Partner GIC Commission Breakdown</title>
+
+<link rel="stylesheet" href="/assets/css/main.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+    /* --- GENERAL STYLES --- */
+    body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; padding: 0; margin: 0; }
+    
+    .top-green-bar { 
+        background-color: #00a65a; color: white; padding: 15px 20px; 
+        font-size: 18px; font-weight: 500; display: flex; align-items: center; 
+        justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .container { padding: 20px; padding-bottom: 80px; max-width: 98%; margin: 0 auto; }
+
+    /* --- INFO CARDS --- */
+    .card { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; }
+    
+    .info-row { display: flex; gap: 20px; margin-bottom: 20px; }
+    .info-col { flex: 1; }
+    .info-label { font-weight: 600; font-size: 12px; color: #666; margin-bottom: 6px; text-transform: uppercase; }
+    .info-box { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px 15px; font-size: 14px; color: #333; border-radius: 4px; font-weight: 500; }
+
+    /* --- TABLE STYLES --- */
+    .details-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; font-size: 12px; }
+    .details-table thead th { 
+        background-color: #e9ecef; color: #495057; font-weight: 600; 
+        padding: 12px 8px; text-align: left; border-bottom: 2px solid #dee2e6; 
+        white-space: nowrap; 
+    }
+    .details-table tbody td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: middle; color: #333; }
+    .details-table tbody tr:hover { background-color: #f1f3f5; }
+
+    /* Icons in table */
+    .check-icon { color: #00a65a; font-size: 13px; }
+    .dash-icon { color: #ccc; }
+
+    /* Inputs in table */
+    .tbl-input { 
+        width: 70px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; 
+        text-align: center; font-weight: 600; color: #337ab7;
+    }
+    .tbl-input:focus { border-color: #337ab7; outline: none; }
+    .tbl-input.error { border-color: #d9534f; background-color: #fff5f5; color: #d9534f; }
+
+    /* Conflict Animation */
+    .conflict-row { background-color: #ffe6e6 !important; transition: background-color 0.5s; }
+    .err-msg { font-size: 10px; color: #d9534f; display: block; margin-top: 2px; }
+
+    /* --- ACTION BUTTONS --- */
+    .action-bar { 
+        margin-top: 30px; display: flex; justify-content: flex-end; gap: 15px; 
+        position: sticky; bottom: 20px; z-index: 90;
+    }
+    .btn-action { 
+        padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: 600; 
+        cursor: pointer; border: none; display: flex; align-items: center; gap: 8px; 
+        transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+    }
+    .btn-back { background-color: #6c757d; color: white; }
+    .btn-save { background-color: #00a65a; color: white; }
+    .btn-save:hover { background-color: #008d4c; transform: translateY(-1px); }
+    .btn-save:disabled { background-color: #88dcb5; cursor: not-allowed; }
+
+    /* --- TOAST --- */
+    #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 4px; padding: 12px 20px; position: fixed; z-index: 2001; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    #toast.show { visibility: visible; animation: fadein 0.3s, fadeout 0.3s 2.5s; }
+    @keyframes fadein { from {bottom: 10px; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+    @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 10px; opacity: 0;} }
+</style>
+</head>
+<body>
+
+<div class="top-green-bar">
+    <span><i class="fas fa-handshake"></i> Partner GIC Commission Breakdown</span>
+</div>
+
+<div class="container">
+    <div class="card">
+        <div class="info-row">
+            <div class="info-col">
+                <div class="info-label">Partner Name</div>
+                <div class="info-box" id="dispName">Loading...</div>
+            </div>
+            <div class="info-col">
+                <div class="info-label">Effective Date</div>
+                <div class="info-box" id="dispDate">--</div>
+            </div>
+        </div>
+
+        <table class="details-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px;">S.NO</th>
+                    <th>Dealer</th>
+                    <th>Company</th>
+                    <th>Product</th>
+                    <th>Coverage</th>
+                    <th>Model</th> 
+                    <th title="Percent On Net" style="text-align:center;">% ON</th>
+                    <th title="Personal Accident" style="text-align:center;">PA</th>
+                    <th title="Without Add-on" style="text-align:center;">W/O AO</th>
+                    <th>Fuel</th>
+                    <th>RTO</th>
+                    <th>CC Range</th>
+                    <th>NCB</th>
+                    <th style="background:#fff3cd; color:#856404; text-align:center;">Dealer % (Max)</th>
+                    <th style="background:#d4edda; color:#155724; width: 120px;">Partner %</th>
+                    <th>Dealer Entry Date</th>
+                    <th style="width: 60px; text-align: center; font-size: 11px;">Apply All<br><input type="checkbox" id="applyAllHeaderCheckbox" title="Toggle all checkboxes below"></th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+
+        <div style="margin-top: 15px; color: #666; font-size: 13px; font-style: italic;">
+            <i class="fas fa-info-circle"></i> Note: Rules are fetched from Dealer Settings. You can only edit the Partner Commission Percentage. Partner % cannot exceed Dealer %.
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <button class="btn-action btn-back" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="btn-action btn-save" onclick="saveData()"><i class="fas fa-save"></i> Save Changes</button>
+    </div>
+</div>
+
+<div id="toast">Data loaded</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const partnerName = decodeURIComponent(params.get('name') || "Unknown");
+    const partnerId = params.get('partnerId');
+    const API_BASE = "http://localhost:4000"; 
+    
+    // --- DATE HANDLERS ---
+    const rawDate = params.get('date'); 
+    
+    function cleanDateForBackend(dateStr) {
+        if (!dateStr) return new Date().toISOString().split('T')[0];
+    
+        const str = String(dateStr).trim();
+
+        // If it's an ISO string (like 2025-01-10T00:00:00.000Z), just take the date part.
+        if (str.includes('T')) {
+            return str.split('T')[0];
+        }
+        
+        // Convert DD-MM-YYYY to YYYY-MM-DD if needed
+        if (str.includes("-") && str.split("-")[0].length === 2) {
+            const [dd, mm, yyyy] = str.split("-");
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        // Convert YYYYMMDD to YYYY-MM-DD
+        if (str.length === 8 && !str.includes("-")) {
+            return `${str.substring(0, 4)}-${str.substring(4, 6)}-${str.substring(6, 8)}`;
+        }
+
+        // Assume it's already YYYY-MM-DD
+        return str;
+    }
+
+    function formatDateForDisplay(dateStr) {
+        const clean = cleanDateForBackend(dateStr);
+        const [yyyy, mm, dd] = clean.split("-");
+        return `${dd}-${mm}-${yyyy}`;
+    }
+
+    const selectedDate = cleanDateForBackend(rawDate);
+    document.getElementById('dispDate').innerText = formatDateForDisplay(selectedDate);
+    document.getElementById('dispName').innerText = partnerName;
+
+    function formatDealerDate(dateStr) {
+        if (!dateStr) return '--';
+        if (typeof dateStr === 'object' && dateStr.$date) dateStr = dateStr.$date;
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) {
+                // Handle 'ddmmyyyy' string format if date object is invalid
+                const s = String(dateStr).replace(/[^0-9]/g, '');
+                if (s.length === 8) {
+                    return `${s.substring(0, 2)}-${s.substring(2, 4)}-${s.substring(4, 8)}`;
+                }
+                return dateStr; // Fallback
+            }
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            return `${dd}-${mm}-${yyyy}`;
+        } catch (e) {
+            return dateStr;
+        }
+    }
+
+    // --- API & TABLE LOGIC ---
+    
+    async function fetchJson(url) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) {
+                console.error("Fetch error:", res.status, res.statusText);
+                const text = await res.text();
+                console.error("Server response:", text);
+                showToast(`Error: ${res.statusText}`, 'error');
+                return null;
+            }
+            // Check if response is JSON before parsing
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return await res.json();
+            } else {
+                const text = await res.text();
+                console.error("Response is not JSON:", text);
+                showToast('Error: Server did not return valid JSON.', 'error');
+                return null;
+            }
+        }
+        catch (err) {
+            console.error("Network error:", err);
+            showToast('Network error. See console.', 'error');
+            return null;
+        }
+    }
+
+    // Load Data: This should fetch the "Dealer Rules" and overlay any existing "Partner Percentages"
+    async function loadSavedData() {
+        // Fetch ALL dealer rules for the date, and merge any saved partner data by calling the correct partner-specific endpoint.
+        const url = `${API_BASE}/api/partner-gic-commission/get-breakdown?partnerName=${encodeURIComponent(partnerName)}&date=${selectedDate}`;
+        const res = await fetchJson(url);
+
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = "";
+
+        // Helper to extract items whether it's an array or a document with breakdownItems
+        let items = [];
+        if (res?.success && res.data) {
+            if (Array.isArray(res.data)) {
+                // Check if array contains documents with breakdownItems (New Structure Array)
+                if (res.data.length > 0 && res.data[0].breakdownItems) {
+                    res.data.forEach(doc => {
+                        const parentDealer = doc.dealer || doc.dealerName;
+                        const parentDate = doc.date || doc.commissionDate;
+                        if (Array.isArray(doc.breakdownItems)) {
+                            items.push(...doc.breakdownItems.map(i => ({...i, dealerName: i.dealerName || parentDealer, date: i.date || parentDate})));
+                        }
+                    });
+                } else {
+                    items = res.data; // Legacy: Array of items
+                }
+            } else if (res.data.breakdownItems && Array.isArray(res.data.breakdownItems)) {
+                // Inject dealer name from parent if available
+                const parentDealer = res.data.dealer || res.data.dealerName;
+                const parentDate = res.data.date || res.data.commissionDate;
+                items = res.data.breakdownItems.map(i => ({...i, dealerName: i.dealerName || parentDealer, date: i.date || parentDate}));
+            }
+        }
+
+        // --- NEW: STRONG SORTING LOGIC ---
+        // Priority: Dealer -> Company -> Product -> Coverage -> Model
+        items.sort((a, b) => {
+            const str = (v) => (v || "").toString().toLowerCase();
+
+            if (str(a.dealerName) !== str(b.dealerName)) return str(a.dealerName).localeCompare(str(b.dealerName));
+            if (str(a.company) !== str(b.company)) return str(a.company).localeCompare(str(b.company));
+            if (str(a.product) !== str(b.product)) return str(a.product).localeCompare(str(b.product));
+            if (str(a.coverage) !== str(b.coverage)) return str(a.coverage).localeCompare(str(b.coverage));
+            return str(a.vehicleModel).localeCompare(str(b.vehicleModel));
+        });
+        // --------------------------------
+
+        if(items.length > 0) {
+            items.forEach((item, index) => {
+                addRowToTable(item, index + 1);
+            });
+            showToast("✅ Rules loaded for " + formatDateForDisplay(selectedDate));
+        } else {
+            tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding:20px; color:#999;">No dealer rules found for this date.</td></tr>`;
+            showToast("No dealer rules found for this effective date.", "error");
+        }
+    }
+
+    function addRowToTable(data, index) {
+        const tbody = document.getElementById('tableBody');
+        const row = tbody.insertRow();
+        
+        const icon = (v) => v ? '<i class="fas fa-check check-icon"></i>' : '<i class="fas fa-minus dash-icon"></i>';
+        
+        const dealerComm = data.dealerPercent || data.maxPercent || 0; 
+        const partnerComm = data.percent || 0;
+        const dealerName = data.dealerName || 'Unknown';
+        
+        const rawDealerDate = data.date || data.commissionDate;
+        const dealerEntryDate = rawDealerDate ? formatDealerDate(rawDealerDate) : '--';
+        const dealerRuleDateValue = (typeof rawDealerDate === 'object' && rawDealerDate.$date) ? rawDealerDate.$date : (rawDealerDate || '');
+
+        const coverageText = data.coverage || 'All';
+        const modelText = data.vehicleModel || 'All';
+        const fuelText = data.fuel || 'All';
+        const rtoText = data.rto || 'All';
+        const ccRangeText = data.ccRange || (data.ccFrom && data.ccTo ? `${data.ccFrom}-${data.ccTo}` : 'All');
+        const ncbRangeText = data.ncbRange || (data.ncbFrom && data.ncbTo ? `${data.ncbFrom}-${data.ncbTo}` : 'All');
+
+        row.innerHTML = `
+            <td>${index}</td>
+            <td style="font-weight:600;">${dealerName}</td>
+            <td style="font-weight:500;">${data.company}</td>
+            <td>${data.product}</td>
+            <td>${coverageText}</td>
+            <td>${modelText}</td>
+            <td style="text-align:center;"><input type="checkbox" class="on-net-checkbox" ${(data.OnNet || data.percentOnNet) ? 'checked' : ''}></td>
+            <td style="text-align:center;">${icon(data.pa)}</td>
+            <td style="text-align:center;">${icon(data.withoutAddon)}</td>
+            <td>${fuelText}</td>
+            <td>${rtoText}</td>
+            <td>${ccRangeText}</td>
+            <td>${ncbRangeText}%</td>
+            <td style="text-align:center; font-weight:bold; color:#856404; background:#fffdf5;">
+                <span class="dealer-val">${dealerComm}</span>%
+            </td>
+            <td style="background:#f1fdf5;">
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <input type="number" class="tbl-input partner-input" 
+                           value="${partnerComm}" step="0.01" min="0" 
+                           oninput="validateRow(this)">
+                    <span class="err-msg"></span>
+                </div>
+                
+                <input type="hidden" class="h-dealername" value="${dealerName}">
+                <input type="hidden" class="h-company" value="${data.company}">
+                <input type="hidden" class="h-product" value="${data.product}">
+                <input type="hidden" class="h-coverage" value="${coverageText}">
+                <input type="hidden" class="h-model" value="${modelText}">
+                <input type="hidden" class="h-pa" value="${data.pa}">
+                <input type="hidden" class="h-without" value="${data.withoutAddon}">
+                <input type="hidden" class="h-fuel" value="${fuelText}">
+                <input type="hidden" class="h-rto" value="${rtoText}">
+                <input type="hidden" class="h-cc" value="${ccRangeText}">
+                <input type="hidden" class="h-ncb" value="${ncbRangeText}">
+                <input type="hidden" class="h-fixed" value="${data.fixed || 0}">
+                <input type="hidden" class="h-dealer-rule-date" value="${dealerRuleDateValue}">
+            </td>
+            <td style="text-align:center; color:#555; font-size:11px;">${dealerEntryDate}</td>
+            <td style="text-align:center;"><input type="checkbox" class="apply-all-checkbox"></td>
+        `;
+    }
+
+    // --- VALIDATION: Partner % cannot > Dealer % ---
+    function validateRow(input) {
+        const row = input.closest('tr');
+        const dealerVal = parseFloat(row.querySelector('.dealer-val').innerText) || 0;
+        const partnerVal = parseFloat(input.value) || 0;
+        const errMsg = row.querySelector('.err-msg');
+
+        if (partnerVal > dealerVal) {
+            input.classList.add('error');
+            row.classList.add('conflict-row');
+            errMsg.innerText = `Max: ${dealerVal}%`;
+            return false;
+        } else {
+            input.classList.remove('error');
+            row.classList.remove('conflict-row');
+            errMsg.innerText = "";
+            return true;
+        }
+    }
+
+    // --- SAVE ---
+    async function saveData() {
+        const btn = document.querySelector('.btn-save');
+        
+        // 1. Check for Validation Errors
+        const tableRows = document.getElementById('tableBody').rows;
+        if (tableRows.length === 0 || (tableRows.length === 1 && tableRows[0].cells.length === 1)) { // Also check for "No rules" row
+            showToast("Nothing to save.", "info");
+            return;
+        }
+
+        const invalidRows = [];
+        Array.from(tableRows).forEach((row) => {
+            const input = row.querySelector('.partner-input');
+            if (input && !validateRow(input)) {
+                const serialNumber = row.cells[0].innerText;
+                invalidRows.push(serialNumber);
+            }
+        });
+
+        if (invalidRows.length > 0) {
+            // Use alert for immediate, blocking feedback as requested by user.
+            alert(`Error in row(s) S.NO: ${invalidRows.join(', ')}. Partner % cannot be greater than Dealer % (Max).`);
+            
+            // Scroll to the first error for user convenience
+            const firstErrorRow = document.querySelector('.conflict-row');
+            if(firstErrorRow) {
+                firstErrorRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
+        // 2. Prepare Data
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; 
+        btn.disabled = true;
+
+        const items = Array.from(tableRows).map(r => {
+            return {
+                dealerName: r.querySelector('.h-dealername').value,
+                company: r.querySelector('.h-company').value,
+                product: r.querySelector('.h-product').value,
+                coverage: r.querySelector('.h-coverage').value,
+                vehicleModel: r.querySelector('.h-model').value,
+                OnNet: r.querySelector('.on-net-checkbox').checked,
+                percentOnNet: r.querySelector('.on-net-checkbox').checked,
+                pa: r.querySelector('.h-pa').value === 'true',
+                withoutAddon: r.querySelector('.h-without').value === 'true',
+                fuel: r.querySelector('.h-fuel').value,
+                rto: r.querySelector('.h-rto').value,
+                ccRange: r.querySelector('.h-cc').value,
+                ncbRange: r.querySelector('.h-ncb').value,
+                fixed: parseFloat(r.querySelector('.h-fixed').value),
+                dealerPercent: parseFloat(r.querySelector('.dealer-val').innerText),
+                percent: parseFloat(r.querySelector('.partner-input').value),
+                dealerRuleDate: r.querySelector('.h-dealer-rule-date').value,
+                applyToAllPartners: r.querySelector('.apply-all-checkbox').checked
+            };
+        });
+
+        const commissionDateForSave = selectedDate;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/partner-gic-commission/save-breakdown`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    partnerName, 
+                    commissionDate: commissionDateForSave, 
+                    items 
+                })
+            });
+            const json = await res.json();
+            if(json.success) {
+                showToast("✅ Data Saved Successfully!");
+            } else {
+                alert("Error: " + json.message);
+            }
+        } catch(e) { 
+            alert("Server Error: " + e.message); 
+        } finally { 
+            btn.innerHTML = originalText; 
+            btn.disabled = false; 
+        }
+    }
+
+    function showToast(msg, type='success') {
+        const t = document.getElementById("toast");
+        t.innerText = msg; 
+        t.style.backgroundColor = type === 'error' ? '#d9534f' : '#333';
+        t.className = "show";
+        setTimeout(() => t.className = t.className.replace("show", ""), 3000);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- EVENT LISTENERS ---
+        const headerCheckbox = document.getElementById('applyAllHeaderCheckbox');
+        if(headerCheckbox) {
+            headerCheckbox.addEventListener('click', (event) => {
+                const isChecked = event.target.checked;
+                document.querySelectorAll('#tableBody .apply-all-checkbox').forEach(cb => {
+                    cb.checked = isChecked;
+                });
+            });
+        }
+    });
+
+    loadSavedData();
+</script>
+</body>
+</html>

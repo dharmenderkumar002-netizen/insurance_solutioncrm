@@ -1,0 +1,71 @@
+/* ---------------------------------------------------------------------- */
+/* --- 2. sidebar.css (Fixed position and margin) --- */
+/* ---------------------------------------------------------------------- */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;      
+    height: 80vh;     
+    background: var(--primary-dark);
+    color: #fff;
+    padding: 22px 14px;
+    overflow-y: auto;    
+    z-index: 1000;     
+    box-sizing: border-box;
+}
+
+/* Keep logo inside sidebar responsive */
+.sidebar .logo img {
+    width: 100%;
+    max-width: 200px;
+    display: block;
+    margin-bottom: 16px;
+}
+
+/* Links */
+.sidebar a {
+    display: flex; 
+    align-items: center;
+    color: #fff;
+    padding: 8px 10px;
+    text-decoration: none;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    transition: background 0.2s;
+}
+.sidebar a:hover {
+    background: rgba(255,255,255,0.14);
+}
+
+/* Page content base (Default sidebar margin) */
+.page-content {
+    margin-left: 260px; /* Default margin for sidebar */
+    padding: 24px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    width: auto; 
+}
+
+/* FIX: Full page display (Removes sidebar margin) */
+.page-content.full-page-display {
+    margin-left: 0 !important; /* Removes sidebar space */
+    width: 100%;
+}
+
+
+/* Small screen: make sidebar collapsible / overlay */
+@media (max-width: 900px) {
+    .sidebar {
+        left: -300px;      
+        transition: left 0.2s;
+    }
+    .sidebar.open {
+        left: 0;
+    }
+    .page-content {
+        margin-left: 0;
+        width: 100%;
+    }
+}

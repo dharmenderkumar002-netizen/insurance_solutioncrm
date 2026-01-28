@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Add Non-Motor Product</title>
+
+<style>
+  body{font-family:Arial;background:#f4f6f9;padding:20px}
+  .box{background:#fff;padding:20px;border-radius:8px;max-width:950px;
+       box-shadow:0 2px 6px rgba(0,0,0,.1);margin-bottom:20px}
+  label{display:block;margin:8px 0 5px;font-weight:600}
+  input,select{width:100%;padding:10px;border:1px solid #ccc;border-radius:6px}
+  .btn{padding:10px 16px;border:none;border-radius:6px;background:#013859;
+       color:white;cursor:pointer;margin-right:10px}
+  .btn:hover{background:#015b8a}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left}
+  .action-btn{padding:6px 10px;font-size:13px;border:none;border-radius:4px;cursor:pointer}
+  .edit{background:#4CAF50;color:white}
+  .del{background:#d9534f;color:white}
+</style>
+
+</head>
+<body>
+
+<div class="box">
+  <h2>ADD NON-MOTOR PRODUCT</h2>
+
+  <label>S.No *</label>
+  <input id="sno" readonly>
+
+  <label>Non-Motor Product Name *</label>
+  <input id="nm" type="text" placeholder="e.g. Fire Insurance, Marine Insurance">
+
+  <label>Status *</label>
+  <select id="status">
+    <option>Active</option>
+    <option>Inactive</option>
+  </select>
+
+  <label>Date *</label>
+  <input id="date" readonly>
+
+  <div style="margin-top:12px">
+    <button class="btn" id="saveBtn">Save</button>
+    <button class="btn" id="newBtn" style="background:#ff9800">Add New</button>
+  </div>
+</div>
+
+<div class="box">
+  <h3>Non-Motor Product Records</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>S.No</th>
+        <th>Non-Motor Product</th>
+        <th>Status</th>
+        <th>Saved Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+const TYPE = "nonmotorproduct";  
+const API = `/api/master/item/${TYPE}`;
+let editId = null;
+
+// Auto Date
+function loadDate(){
+  document.getElementById("date").value = new Date().toISOString().split("T")[0];
+}
+
+// Auto S.No
+async function loadSno(){
+  const res = await fetch(API);
+  const data = await res.json();
+  document.getElementById("sno").value = data.data.length + 1;
+}
+
+// Reset Form
+function resetForm(){
+  editId = null;
+  document.getElementById("nm").value = "";
+  document.getElementById("status").value = "Active";
+  loadDate();
+  loadSno();
+}
+
+// Validate
+function validate(){
+  const nm = document.getElementById("nm").value.trim();
+  if(!nm){
+    alert("Non-Motor product name is required.");
+    return false;
+  }
+  return true;
+}
+
+// Save Product
+async function saveNM(){
+  if(!validate()) return;
+
+  const payload = {
+    name: document.getElementById("nm").value.trim(),
+    meta: { nonmotor: document.getElementById("nm").value.trim() },
+    status: document.getElementById("status").value,
+    date: document.getElementById("date").value
+  };
+
+  const url = editId ? `${API}/${editId}` : API;
+  const method = editId ? "PUT" : "POST";
+
+  const res = await fetch(url,{
+    method,
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  });
+
+  const result = await res.json();
+
+  if(result.success){
+    resetForm();
+    loadList();
+  } else {
+    alert(result.message);
+  }
+}
+
+// Load List
+async function loadList(){
+  const res = await fetch(API);
+  const data = await res.json();
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  data.data.forEach(item=>{
+    tbody.innerHTML += `
+      <tr>
+        <td>${item.s_no}</td>
+        <td>${item.meta.nonmotor}</td>
+        <td>${item.status}</td>
+        <td>${item.date}</td>
+        <td>
+          <button class="action-btn edit" onclick="edit('${item._id}')">Edit</button>
+          <button class="action-btn del" onclick="remove('${item._id}')">Delete</button>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+// Edit
+async function edit(id){
+  const res = await fetch(API);
+  const data = await res.json();
+  const item = data.data.find(x => x._id === id);
+  editId = id;
+
+  document.getElementById("sno").value = item.s_no;
+  document.getElementById("nm").value = item.meta.nonmotor;
+  document.getElementById("status").value = item.status;
+  document.getElementById("date").value = item.date;
+}
+
+// Delete
+async function remove(id){
+  if(!confirm("Delete Non-Motor Product?")) return;
+  await fetch(`${API}/${id}`, { method:"DELETE" });
+  loadList();
+  loadSno();
+}
+
+// INIT PAGE
+loadDate();
+loadSno();
+loadList();
+
+document.getElementById("saveBtn").addEventListener("click", saveNM);
+document.getElementById("newBtn").addEventListener("click", resetForm);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,38 @@
+/* ---------------------------------------------------------------------- */
+/* --- 3. login.css (Final Login Page Styles) --- */
+/* ---------------------------------------------------------------------- */
+body {
+    background: url('../images/background.jpg') no-repeat center center/cover;
+    font-family: 'Roboto', Arial; 
+}
+
+.login-box {
+    width: 380px;
+    margin: 80px auto;
+    background: #ffffffdd;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+.logo-box img {
+    width: 130px;
+    display: block;
+    margin: 0 auto 20px auto;
+}
+
+.login-title {
+    text-align: center;
+    font-size: 24px; 
+    margin-bottom: 25px;
+    color: var(--primary-dark, #013859); 
+}
+
+a {
+    color: var(--primary-light, #005a96); 
+    text-decoration: none;
+    transition: color 0.2s;
+}
+a:hover {
+    color: var(--accent-orange, #ff9800);
+}

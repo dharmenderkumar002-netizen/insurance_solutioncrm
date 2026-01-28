@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+    // Redirect to main layout if not in an iframe or a popup.
+    // This prevents direct access to the page.
+    if (window.self === window.top && !window.opener) {
+        // The path to layout.html from this page.
+        window.location.href = 'layout.html';
+    }
+</script>
+<meta charset="UTF-8">
+<title>Add Customer</title>
+
+<style>
+    /* --- CRM Color Palette & Base Styles --- */
+    :root {
+        --primary-dark: #013859; 
+        --accent-orange: #ff9800; 
+        --background-color: #f4f6f9; 
+        --card-bg: #ffffff;
+        --text-color-dark: #333;
+        --border-color: #e0e0e0;
+    }
+
+    /* --- General Styling (For Popup) --- */
+    body {
+        font-family: 'Roboto', sans-serif;
+        background: var(--background-color);
+        margin: 0;
+        padding: 20px;
+        color: var(--text-color-dark);
+    }
+
+    /* --- Popup Box/Card --- */
+    .popup-box {
+        background: var(--card-bg);
+        padding: 25px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); 
+        max-width: 400px; /* Width for single column */
+        margin: auto;
+        position: relative;
+    }
+    
+    /* --- Header & Close Button --- */
+    h3 {
+        color: var(--primary-dark);
+        border-bottom: 2px solid var(--accent-orange);
+        padding-bottom: 10px;
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 20px;
+        font-weight: 700;
+    }
+    .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 25px;
+        font-size: 28px;
+        font-weight: 300;
+        color: #888;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .close-btn:hover {
+        color: var(--primary-dark);
+    }
+
+    /* --- Form Layout: Single Column (Simple Stack) --- */
+    .form-group {
+        margin-bottom: 15px; /* Spacing between fields */
+    }
+
+    /* --- Field Styling --- */
+    form label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #555;
+        display: block;
+        margin-bottom: 5px;
+    }
+    form input[type="text"], form input[list], form select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 14px;
+        background: #fafafa;
+        box-sizing: border-box; 
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    form input:focus, form select:focus {
+        border-color: var(--primary-dark); 
+        box-shadow: 0 0 0 2px rgba(1, 56, 89, 0.1);
+        background: var(--card-bg);
+        outline: none;
+    }
+
+    /* File Input Styling */
+    .file-input-wrapper {
+        display: block;
+        position: relative;
+        overflow: hidden;
+    }
+    .file-input-wrapper input[type="file"] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 100%;
+        min-height: 100%;
+        opacity: 0;
+        cursor: inherit;
+        display: block;
+    }
+    .file-btn {
+        background: #f0f0f0;
+        color: #555;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        display: block;
+        text-align: center;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .file-btn:hover {
+        background: #e0e0e0;
+    }
+
+    /* Partner Status Message */
+    #partnerStatus {
+        font-size: 12px; 
+        color: #10b981; 
+        margin-top: 5px;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    .doc-upload-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* 2 columns for smaller popup */
+        gap: 10px;
+        margin-top: 10px;
+    }
+    /* Small screen fixes for upload section */
+    @media (max-width: 450px) {
+        .doc-upload-grid {
+            grid-template-columns: 1fr; /* Stack uploads on very small screens */
+        }
+    }
+
+
+    /* Button Styling */
+    button[type="button"] {
+        background: var(--primary-dark);
+        color: white;
+        padding: 12px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.3s;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 20px;
+    }
+    button[type="button"]:hover:not(:disabled) {
+        background: #002e4d;
+    }
+    button[type="button"]:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+
+    /* === NEW: Message Box Styling === */
+    #saveMessage {
+        padding: 10px; 
+        margin-bottom: 15px; 
+        border-radius: 4px; 
+        text-align: center; 
+        font-weight: 600;
+        display: none; /* Initially hidden */
+    }
+    .msg-error {
+        background: #f8d7da; /* Light Red */
+        color: #721c24;      /* Dark Red */
+        border: 1px solid #f5c6cb;
+    }
+    .msg-success {
+        background: #d4edda; /* Light Green */
+        color: #155724;      /* Dark Green */
+        border: 1px solid #c3e6cb;
+    }
+    .msg-info {
+        background: #fff3cd; /* Light Yellow */
+        color: #856404;      /* Dark Yellow */
+        border: 1px solid #ffeeba;
+    }
+</style>
+</head>
+
+<body>
+<div class="popup-box">
+    <span class="close-btn" onclick="closePopup()">×</span>
+    <h3>➕ Add New Customer Record</h3>
+    
+    <div id="saveMessage" class="msg-info"></div>
+
+    <form id="customerForm">
+        
+        <div class="form-group">
+            <label>S. No</label><input type="text" id="sno" readonly> 
+        </div>
+        
+        <div class="form-group">
+            <label>Customer Name *</label><input type="text" id="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Mobile *</label><input type="text" id="mobile" required placeholder="10 Digit Mobile No">
+        </div>
+        
+        <div class="form-group">
+            <label>Email </label><input type="text" id="email" placeholder="Optional Email">
+        </div>
+        
+        <div class="form-group">
+            <label>Partner</label>
+            <input list="partnerList" id="partner" placeholder="Search or Select Partner"> 
+            <datalist id="partnerList"></datalist>
+            <div id="partnerStatus">Loading Partners...</div>
+        </div>
+        <div class="form-group">
+            <label>Address *</label><input type="text" id="address">
+        </div>
+        
+        <div class="form-group">
+            <label>Status</label>
+            <select id="custStatus">
+                <option value="Active">Active</option>
+                <option value="NonActive">NonActive</option>
+            </select>
+        </div>
+        
+        
+        <div class="form-group" style="margin-top: 20px;">
+            <label style="color:var(--primary-dark); font-weight:600;">Document Uploads</label>
+            <div class="doc-upload-grid">
+                <div>
+                    <label>PAN Upload</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="panFile" onchange="document.getElementById('panFileName').textContent=this.files[0].name || 'Upload PAN'">
+                        <span class="file-btn" id="panFileName">Upload PAN</span>
+                    </div>
+                </div>
+                <div>
+                    <label>Aadhaar Upload</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="adharFile" onchange="document.getElementById('adharFileName').textContent=this.files[0].name || 'Upload Aadhaar'">
+                        <span class="file-btn" id="adharFileName">Upload Aadhaar</span>
+                    </div>
+                </div>
+                <div style="grid-column: 1 / span 2;">
+                    <label>GST Upload</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="gstFile" onchange="document.getElementById('gstFileName').textContent=this.files[0].name || 'Upload GST'">
+                        <span class="file-btn" id="gstFileName">Upload GST</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button type="button" onclick="saveCustomer()">✅ Save Customer Record</button>
+    </form>
+</div>
+<script>
+// --- API Endpoints ---
+const PARTNER_API_URL = "/api/master/partner"; 
+const CUSTOMER_SAVE_API_URL = "/api/customer/add";     
+const CUSTOMER_LIST_API_URL = "/api/customer/search"; 
+
+// --- Message Display Function ---
+function showMessage(message, type = 'error') {
+    const msgDiv = document.getElementById("saveMessage");
+    if (!msgDiv) return;
+
+    msgDiv.textContent = message;
+    
+    // Set classes for styling
+    msgDiv.className = type === 'success' ? 'msg-success' : 
+                      (type === 'error' ? 'msg-error' : 'msg-info');
+
+    msgDiv.style.display = 'block';
+
+    // Clear message after 6 seconds
+    if (type !== 'info') {
+        setTimeout(() => {
+            msgDiv.style.display = 'none';
+        }, 6000);
+    }
+}
+
+// --- UPDATED S.No. LOADER ---
+window.loadCustomerSno = async function() {
+    const defaultSno = "1"; // Fallback S.No.
+    
+    try {
+        const res = await fetch(CUSTOMER_LIST_API_URL); 
+        
+        if (!res.ok) {
+            console.error(`S.No. fetch failed: HTTP ${res.status} (API: ${CUSTOMER_LIST_API_URL})`);
+            // Fall through to catch block
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const json = await res.json();
+        
+        // 💡 Debugging: Check API Response Structure in Console
+        console.log("Customer List API Response for S.No. Count:", json);
+        
+        let customerCount = 0;
+        
+        // 1. यदि API response में 'data' array है (जैसा कि आपके कोड में अनुमान लगाया गया है)
+        if (json && Array.isArray(json.data)) {
+            customerCount = json.data.length;
+        // 2. या यदि response सीधे एक array है
+        } else if (json && Array.isArray(json)) {
+            customerCount = json.length;
+        } 
+        
+        // Calculate next S.No.
+        const nextSno = customerCount + 1;
+        document.getElementById("sno").value = nextSno;
+        
+    } catch(e) {
+        console.error("Failed to load Customer S.No., using default '1'.", e);
+        // Set to default if fetch fails
+        document.getElementById("sno").value = defaultSno; 
+    }
+}
+// --- END S.No. LOADER ---
+
+window.loadPartners = async function() {
+    try {
+        const response = await fetch(PARTNER_API_URL);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const json = await response.json(); 
+        // Assuming 'data' array contains objects with a 'name' property
+        return json.data ? json.data.map(p => p.name).filter(name => name) : []; 
+    } catch (error) {
+        console.error("Failed to fetch partners:", error);
+        return []; 
+    }
+}
+
+window.initCustomerForm = async function() {
+    // S.No. को पहले लोड करें
+    await window.loadCustomerSno();
+    
+    const statusDiv = document.getElementById("partnerStatus");
+    statusDiv.textContent = "Loading Partners...";
+    
+    try {
+        const partners = await window.loadPartners(); 
+        const plist = document.getElementById("partnerList");
+        plist.innerHTML = '';
+        partners.forEach(p => {
+            let option = document.createElement("option");
+            option.value = p;
+            plist.appendChild(option);
+        });
+        statusDiv.textContent = partners.length > 0 ? `Loaded ${partners.length} Partners` : "No active Partners found.";
+    } catch (error) {
+        statusDiv.textContent = "Error loading partners.";
+    }
+}
+
+
+window.saveCustomer = async function() {
+    const saveBtn = document.querySelector("button[type='button']");
+    showMessage("Saving...", 'info');
+    saveBtn.disabled = true;
+
+    const name = document.getElementById("name").value.trim();
+    const mobile = document.getElementById("mobile").value.trim();
+    
+    // --- Frontend Validation ---
+    if(!name){ 
+        showMessage("Customer name is required.", 'error'); 
+        saveBtn.disabled = false; 
+        return; 
+    }
+    
+    if(!mobile){
+        showMessage("Mobile number is required.", 'error'); 
+        saveBtn.disabled = false; 
+        return;
+    }
+    
+    // Prepare FormData
+    const formData = new FormData();
+    formData.append('sno', document.getElementById("sno").value);
+    formData.append('name', name);
+    formData.append('address', document.getElementById("address").value.trim());
+    formData.append('mobile', mobile);
+    formData.append('email', document.getElementById("email").value.trim()); 
+    formData.append('partnerName', document.getElementById("partner").value.trim());
+    formData.append('status', document.getElementById("custStatus").value.trim());
+    
+    // Append files
+    const panFile = document.getElementById("panFile").files[0];
+    const adharFile = document.getElementById("adharFile").files[0];
+    const gstFile = document.getElementById("gstFile").files[0];
+    
+    if (panFile) formData.append('panFile', panFile, panFile.name);
+    if (adharFile) formData.append('adharFile', adharFile, adharFile.name);
+    if (gstFile) formData.append('gstFile', gstFile, gstFile.name);
+
+
+    try {
+        const res = await fetch(CUSTOMER_SAVE_API_URL, {
+            method: "POST",
+            body: formData 
+        });
+
+        if (!res.ok) {
+            const errorJson = await res.json();
+            const errorMessage = errorJson.message || `Server responded with status: ${res.status} ${res.statusText}`;
+            
+            // Handle specific duplicate error and show on page
+            if (errorMessage.includes("mobile number already exists")) {
+                 showMessage(`⚠️ Server Error: Mobile number already registered. Please change the mobile number.`, 'error');
+            } else {
+                 showMessage(`Error Saving: ${errorMessage}`, 'error');
+            }
+            
+            throw new Error(errorMessage); // Throw error for console logging
+        }
+        
+        const json = await res.json();
+
+        if (!json.success) {
+            showMessage(`Error saving customer: ${json.message || 'Unknown server error'}`, 'error');
+            return;
+        }
+
+        // 🟢 SUCCESS
+        showMessage("Customer Saved Successfully! Closing window...", 'success');
+        
+        // Post message to the opener window (GIC form) to auto-fill fields
+        if (window.opener && window.opener.postMessage) {
+            const savedCustomerData = {
+                // ...json.data, 
+                sno: document.getElementById("sno").value,
+                name: name, // cname से आया
+                mobile: mobile,
+                address: document.getElementById("address").value.trim(),
+                // 'partner' नाम का उपयोग किया गया है, जैसा कि gic.html अपेक्षा करता है
+                partner: document.getElementById("partner").value.trim(), 
+                email: document.getElementById("email").value.trim() 
+            };
+            
+            // 'type: CUSTOMER_SAVED' संदेश gic.html द्वारा अपेक्षित है
+            setTimeout(() => {
+                window.opener.postMessage({ type: 'CUSTOMER_SAVED', payload: savedCustomerData }, "*"); 
+                window.close(); 
+            }, 1000);
+        } else {
+            // Close if no opener exists (e.g., development testing)
+            setTimeout(() => window.close(), 1000);
+        }
+
+    } catch (err) {
+        console.error("Save Customer Error:", err);
+        // showMessage() already handled inside the try block for non-success
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "✅ Save Customer Record";
+    }
+}
+
+window.closePopup = function() {
+    window.close();
+}
+
+// Initial call: Ensures S.No. and Partners load when the popup opens
+document.addEventListener('DOMContentLoaded', window.initCustomerForm);
+</script>
+</body>
+</html>

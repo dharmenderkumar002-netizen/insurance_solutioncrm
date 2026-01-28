@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Add Insurance Company</title>
+
+<link rel="stylesheet" href="../../assets/css/main.css"> 
+
+<style>
+    body{
+        font-family: Arial, sans-serif;
+        background:#f4f6f9;
+        padding:18px;
+    }
+
+    .crm-card{
+        background:#fff;
+        padding:22px;
+        border-radius:8px;
+        box-shadow:0 2px 6px rgba(0,0,0,.08);
+        max-width:900px;
+        margin:0 auto 20px auto;
+    }
+
+    /* ===== 2 COLUMN FORM ===== */
+    .form-grid{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:16px 18px;
+    }
+
+    .full{
+        grid-column:span 2;
+    }
+
+    label{
+        display:block;
+        margin-bottom:6px;
+        font-weight:600;
+        font-size:14px;
+        color:#374151;
+    }
+
+    input,select{
+        width:100%;
+        padding:9px 10px;
+        border:1px solid #ccc;
+        border-radius:6px;
+        font-size:14px;
+        background:#f8fafc;
+    }
+
+    .btn-row{
+        margin-top:18px;
+        display:flex;
+        gap:10px;
+    }
+
+    .btn{
+        padding:10px 18px;
+        background:#013859;
+        color:#fff;
+        border:none;
+        border-radius:6px;
+        cursor:pointer;
+    }
+
+    .btn-new{
+        background:#ff9800;
+    }
+
+    table{
+        width:100%;
+        border-collapse:collapse;
+        margin-top:15px;
+    }
+
+    th,td{
+        padding:10px;
+        border-bottom:1px solid #eee;
+        text-align:left;
+        font-size:14px;
+    }
+
+    th{
+        background:#f8f9fa;
+    }
+
+    .action-btn{
+        padding:6px 10px;
+        border-radius:5px;
+        border:none;
+        cursor:pointer;
+        font-size:13px;
+        color:#fff;
+    }
+
+    .edit{background:#4CAF50;}
+    .del{background:#d9534f;}
+</style>
+</head>
+
+<body>
+
+<!-- ================= FORM ================= -->
+<div class="crm-card">
+    <h2>ADD INSURANCE COMPANY</h2>
+
+    <div class="form-grid">
+
+        <div>
+            <label>S.No *</label>
+            <input id="sno" readonly>
+        </div>
+
+        <div>
+            <label>Status *</label>
+            <select id="status">
+                <option>Active</option>
+                <option>Inactive</option>
+            </select>
+        </div>
+
+        <div class="full">
+            <label>Insurance Company *</label>
+            <input id="insco" placeholder="e.g. LIC, ICICI Lombard, HDFC Ergo">
+        </div>
+
+        <div class="full">
+            <label>Date *</label>
+            <input id="date" readonly>
+        </div>
+
+    </div>
+
+    <div class="btn-row">
+        <button class="btn" id="saveBtn">Save</button>
+        <button class="btn btn-new" id="newBtn">Add New</button>
+    </div>
+</div>
+
+<!-- ================= TABLE ================= -->
+<div class="crm-card">
+    <h3>Insurance Company Records</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>S.No</th>
+                <th>Insurance Company</th>
+                <th>Status</th>
+                <th>Saved Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+</div>
+
+<script>
+const TYPE="insurancecompany";
+const API=`/api/master/item/${TYPE}`;
+let editId=null;
+
+/* DATE */
+function loadDate(){
+    document.getElementById("date").value=
+        new Date().toISOString().split("T")[0];
+}
+
+/* S.NO */
+async function loadSno(){
+    const r=await fetch(API);
+    const j=await r.json();
+    document.getElementById("sno").value=(j.data?j.data.length:0)+1;
+}
+
+/* RESET */
+function resetForm(){
+    editId=null;
+    document.getElementById("insco").value="";
+    document.getElementById("status").value="Active";
+    loadDate();loadSno();
+}
+
+/* VALIDATE */
+function validate(){
+    if(!document.getElementById("insco").value.trim()){
+        alert("Insurance company name required");
+        return false;
+    }
+    return true;
+}
+
+/* SAVE */
+async function saveCompany(){
+    if(!validate())return;
+
+    const payload={
+        s_no:parseInt(document.getElementById("sno").value),
+        name:document.getElementById("insco").value.trim(),
+        meta:{insco:document.getElementById("insco").value.trim()},
+        status:document.getElementById("status").value,
+        date:document.getElementById("date").value
+    };
+
+    const url=editId?`${API}/${editId}`:API;
+    const method=editId?"PUT":"POST";
+
+    const r=await fetch(url,{
+        method,
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+    });
+    const j=await r.json();
+    if(j.success){resetForm();loadList();}
+    else alert(j.message||"Save failed");
+}
+
+/* LIST */
+async function loadList(){
+    const r=await fetch(API);
+    const j=await r.json();
+    const tb=document.getElementById("tbody");
+    tb.innerHTML="";
+
+    if(!j.data||!j.data.length){
+        tb.innerHTML='<tr><td colspan="5">No records found</td></tr>';
+        return;
+    }
+
+    j.data.sort((a,b)=>a.s_no-b.s_no).forEach(i=>{
+        tb.innerHTML+=`
+        <tr>
+            <td>${i.s_no}</td>
+            <td>${i.meta?.insco||i.name}</td>
+            <td>${i.status}</td>
+            <td>${i.date}</td>
+            <td>
+                <button class="action-btn edit" onclick="editItem('${i._id}')">Edit</button>
+                <button class="action-btn del" onclick="deleteItem('${i._id}')">Delete</button>
+            </td>
+        </tr>`;
+    });
+}
+
+/* EDIT */
+async function editItem(id){
+    const r=await fetch(API);
+    const j=await r.json();
+    const i=j.data.find(x=>x._id===id);
+    if(!i)return;
+
+    editId=id;
+    document.getElementById("sno").value=i.s_no;
+    document.getElementById("insco").value=i.meta.insco;
+    document.getElementById("status").value=i.status;
+    document.getElementById("date").value=i.date;
+    window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* DELETE */
+async function deleteItem(id){
+    if(!confirm("Delete Insurance Company?"))return;
+    await fetch(`${API}/${id}`,{method:"DELETE"});
+    loadList();loadSno();
+}
+
+/* INIT */
+loadDate();loadSno();loadList();
+document.getElementById("saveBtn").onclick=saveCompany;
+document.getElementById("newBtn").onclick=resetForm;
+</script>
+
+</body>
+</html>

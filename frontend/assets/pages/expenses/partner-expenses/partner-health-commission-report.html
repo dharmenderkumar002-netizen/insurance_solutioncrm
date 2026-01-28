@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Partner (Health) Commission Report</title>
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <link rel="stylesheet" href="/assets/css/gic.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; padding: 15px; margin: 0; }
+        
+        /* Green Theme for Health */
+        .report-header { background: #fff; padding: 10px 15px; border-left: 4px solid #00a65a; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .report-header h2 { font-size: 18px; margin: 0; color: #333; font-weight: 500; }
+        
+        .status-bar { background: #00a65a; color: white; padding: 8px 15px; font-size: 13px; margin-bottom: 15px; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; }
+
+        .filter-section { background: #fff; padding: 15px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .filter-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+        .filter-item { flex: 1; min-width: 200px; }
+        .filter-item label { display: block; font-size: 12px; font-weight: 600; color: #666; margin-bottom: 5px; }
+        
+        .select2-container--default .select2-selection--multiple { border: 1px solid #ccc; border-radius: 2px; min-height: 32px; }
+        .input-custom { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 2px; font-size: 13px; box-sizing: border-box; }
+
+        .btn-go { background: #337ab7; color: white; border: none; padding: 7px 15px; border-radius: 3px; cursor: pointer; font-weight: 500; transition: 0.3s; }
+        .btn-go:hover { background: #286090; }
+        .btn-export { background: #00a65a; color: white; border: none; padding: 7px 15px; border-radius: 3px; cursor: pointer; font-weight: 500; }
+
+        .table-container { background: white; padding: 10px; border-radius: 4px; overflow-x: auto; border: 1px solid #ddd; height: 65vh; position: relative; }
+        .report-table { width: 100%; border-collapse: collapse; min-width: 1600px; }
+        .report-table th { background: #f8f9fa; color: #333; font-size: 11px; font-weight: 700; padding: 8px; border: 1px solid #ddd; text-align: left; position: sticky; top: 0; z-index: 10; }
+        .report-table td { padding: 8px; border: 1px solid #ddd; font-size: 11px; color: #444; white-space: nowrap; }
+        
+        .footer-summary { background: #fff; padding: 10px; margin-top: 15px; border: 1px solid #ddd; font-weight: 700; color: #333; display: flex; justify-content: flex-end; font-size: 15px; }
+        .badge { padding: 3px 8px; border-radius: 3px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .badge-active { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+        .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        
+        #lastUpdated { font-style: italic; font-size: 11px; opacity: 0.8; }
+        #timerText { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="report-header">
+    <h2 id="partnerTitle"><i class="fas fa-heartbeat"></i> Partner (Health) Commission Report</h2>
+    <div id="lastUpdated">Last sync: Never</div>
+</div>
+
+<div class="status-bar">
+    <span><i class="fas fa-calculator"></i> Calculating Health Insurance Payouts</span>
+    <span>Next Refresh in: <span id="timerText">30</span>s</span>
+</div>
+
+<div class="filter-section">
+    <div class="filter-grid">
+        <div class="filter-item">
+            <label>Partner(s) *</label>
+            <select id="f_partner" class="js-select2" multiple="multiple" style="width: 100%"></select>
+        </div>
+        <div class="filter-item">
+            <label>Insurance Company</label>
+            <select id="f_company" class="js-select2" multiple="multiple" style="width: 100%"></select>
+        </div>
+        <div class="filter-item">
+            <label>Quick Search</label>
+            <input type="text" id="f_search" class="input-custom" placeholder="Policy / Customer / Product">
+        </div>
+        <div class="filter-item" style="max-width: 150px;">
+            <label>From Date</label>
+            <input type="date" id="f_from" class="input-custom">
+        </div>
+        <div class="filter-item" style="max-width: 150px;">
+            <label>To Date</label>
+            <input type="date" id="f_to" class="input-custom">
+        </div>
+        <div style="display: flex; gap: 5px;">
+            <button class="btn-go" onclick="handleManualGo()"><i class="fas fa-play"></i> GO</button>
+            <button class="btn-export" onclick="exportToExcel()"><i class="fas fa-file-excel"></i> Export to Excel</button>
+        </div>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="report-table" id="reportTable">
+        <thead>
+            <tr>
+                <th>S.No.</th>
+                <th>Partner Name</th>
+                <th>Policy Date</th>
+                <th>Policy No</th>
+                <th>Customer Name</th>
+                <th>Product</th>
+                <th>INS Company</th>                
+                <th>Policy Type</th>
+                <th>Term</th>
+                <th>Sum Assured</th>
+                <th>Net Premium</th>
+                <th>Payout %</th>
+                <th>Fixed</th>
+                <th style="background: #e8f5e9;">Comm Amount</th>
+                <th>Status</th>
+                <th>Entry Date</th>
+            </tr>
+        </thead>
+        <tbody id="reportTbody">
+            <tr><td colspan="16" style="text-align:center; padding: 30px; color: #888;">Select filters and click GO to process report.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="footer-summary">
+    Grand Total Commission: ₹ <span id="totalComm" style="color: #00a65a; margin-left: 10px;">0.00</span>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+<script>
+    const API_BASE = "http://localhost:4000"; 
+    let refreshTimer = 30;
+    let timerId = null;
+
+    $(document).ready(function() {
+        $('.js-select2').select2({ placeholder: "All", allowClear: true });
+
+        loadFilters().then(() => {
+            restoreFromUrl();
+        });
+
+        startCountdown();
+    });
+
+    async function loadFilters() {
+        try {
+            const [pRes, cRes] = await Promise.all([
+                fetch(`${API_BASE}/api/master/partner`).then(r => r.json()),
+                fetch(`${API_BASE}/api/master/item/insurancecompany`).then(r => r.json())
+            ]);
+            
+            pRes.data.forEach(p => $('#f_partner').append(new Option(p.name, p.name)));
+            cRes.data.forEach(c => $('#f_company').append(new Option(c.name, c.name)));
+        } catch (err) { console.error("Filter Load Error:", err); }
+    }
+
+    function restoreFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('partners')) {
+            $('#f_partner').val(params.get('partners').split(',')).trigger('change');
+            generateReport(true); 
+        }
+    }
+
+    function updateUrl() {
+        const url = new URL(window.location);
+        url.searchParams.set('partners', ($('#f_partner').val() || []).join(','));
+        window.history.pushState({}, '', url);
+    }
+
+    function handleManualGo() {
+        updateUrl();
+        refreshTimer = 30; 
+        generateReport(false);
+    }
+
+    async function generateReport(isSilent = false) {
+        const partners = $('#f_partner').val();
+        if (!partners || partners.length === 0) {
+            window.reportData = [];
+            return;
+        }
+
+        const tbody = document.getElementById('reportTbody');
+        if (!isSilent) {
+            tbody.innerHTML = `<tr><td colspan="16" style="text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading Data...</td></tr>`;
+        }
+
+        try {
+            // Note: Ensure your backend /api/partner-expenses/report/health route implements the actual logic
+            const res = await fetch(`${API_BASE}/api/partner-expenses/report/health`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    partners,
+                    companies: $('#f_company').val(),
+                    fromDate: $('#f_from').val(),
+                    toDate: $('#f_to').val(),
+                    search: $('#f_search').val()
+                })
+            });
+
+            const result = await res.json();
+
+            if (result.success && Array.isArray(result.data)) {
+                window.reportData = result.data;
+                renderTable(result.data);
+                document.getElementById('lastUpdated').innerText = `Last sync: ${new Date().toLocaleTimeString()}`;
+            } else {
+                window.reportData = [];
+                tbody.innerHTML = `<tr><td colspan="16" style="text-align:center; padding:20px; color:#999;">No data found</td></tr>`;
+            }
+
+        } catch (err) {
+            console.error("Report Error:", err);
+            window.reportData = [];
+        }
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('reportTbody');
+        tbody.innerHTML = "";
+        let grandTotal = 0;
+
+        data.forEach((item, index) => {
+            const commAmt = Number(item.commAmt) || 0;
+            grandTotal += commAmt;
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td style="font-weight: 600;">${item.partnerName}</td>
+                    <td>${item.policyDate ? new Date(item.policyDate).toLocaleDateString('en-GB') : '-'}</td>
+                    <td>${item.policyNo || '-'}</td>
+                    <td>${item.customerName || 'Unknown'}</td>
+                    <td>${item.product || '-'}</td>
+                    <td>${item.insCompany || '-'}</td>
+                    
+                    <td>${item.policyType || '-'}</td>
+                    <td>${item.term || '-'}</td>
+                    <td>₹${(item.sumAssured || 0).toLocaleString('en-IN')}</td>
+                    
+                    <td style="background:#e8f5e9; color:#2e7d32; font-weight:bold; border:2px solid #2e7d32;">
+                        ₹${(item.netPremium || 0).toLocaleString('en-IN')}
+                    </td>
+                    
+                    <td style="color: blue; font-weight:bold;">${item.commPercent}%</td>
+                    <td>₹${(item.fixed || 0).toLocaleString('en-IN')}</td>
+                    
+                    <td style="background: #e1f5fe; font-weight: bold; color: #007bff; font-size: 13px;">
+                        ₹${commAmt.toFixed(2)}
+                    </td>
+                    
+                    <td><span class="badge badge-active">${item.status || 'DONE'}</span></td>
+                    <td>${item.entryDate ? new Date(item.entryDate).toLocaleDateString('en-GB') : '-'}</td>
+                </tr>`;
+        });
+        document.getElementById('totalComm').innerText = grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    }
+
+    function startCountdown() {
+        if(timerId) clearInterval(timerId);
+        timerId = setInterval(() => {
+            refreshTimer--;
+            if(refreshTimer <= 0) {
+                generateReport(true);
+                refreshTimer = 30;
+            }
+            document.getElementById('timerText').innerText = refreshTimer;
+        }, 1000);
+    }
+
+    function formatDateDDMMYYYY(dateStr) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        return `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+    }
+
+    function exportToExcel() {
+        if (!window.reportData || window.reportData.length === 0) {
+            alert("No data to export");
+            return;
+        }
+
+        const rows = [];
+        const colCount = 15;
+
+        // Headers
+        rows.push(["INSURANCE SOLUTION"]); 
+        rows.push(["PARTNER HEALTH COMMISSION REPORT"]);
+        rows.push([`Generated On: ${new Date().toLocaleDateString('en-GB')}`]);
+        
+        const headers = [
+            "S.No", "Partner Name", "Policy Date", "Policy No", "Customer Name", 
+            "Product", "INS Company", "Policy Type", "Term", "Sum Assured",
+            "Net Premium", "Payout %", "Fixed", "Comm Amount", "Status"
+        ];
+        rows.push(headers);
+        
+        const headerRowIndex = 3; 
+        let currentExcelRow = headerRowIndex + 2; // Data starts at Row 5 (Excel Index)
+
+        window.reportData.forEach((item, index) => {
+            const fixed = parseFloat(item.fixed) || 0;
+            
+            // Formula: =ROUND(K{row} * L{row} / 100, 2) + Fixed
+            // K is Net Premium, L is Payout %
+            const commFormula = { f: `ROUND(K${currentExcelRow}*L${currentExcelRow}/100, 2) + ${fixed}` };
+
+            rows.push([
+                index + 1,
+                item.partnerName,
+                item.policyDate ? formatDateDDMMYYYY(item.policyDate) : "",
+                item.policyNo,
+                item.customerName,
+                item.product,
+                item.insCompany,
+                item.policyType,
+                item.term,
+                item.sumAssured || 0,
+                item.netPremium || 0, // Col K
+                item.commPercent || 0, // Col L
+                fixed,
+                commFormula,          // Col N
+                item.status || "DONE"
+            ]);
+            currentExcelRow++;
+        });
+
+        // Add Total Row
+        const lastDataRow = currentExcelRow - 1;
+        rows.push([
+            "TOTAL", "", "", "", "", "", "", "", "", "",
+            { f: `SUM(K5:K${lastDataRow})` }, // Total Net Premium
+            "", "",
+            { f: `SUM(N5:N${lastDataRow})` }, // Total Comm
+            ""
+        ]);
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+
+        // Styling (Titles)
+        ws["!merges"] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: colCount - 1 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: colCount - 1 } }
+        ];
+
+        // Column Widths
+        ws["!cols"] = [
+            { wch: 5 }, { wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 20 },
+            { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 12 },
+            { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 10 }
+        ];
+
+        // Apply Styles to Header
+        const range = XLSX.utils.decode_range(ws["!ref"]);
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const addr = XLSX.utils.encode_cell({ r: headerRowIndex, c: C });
+            if (!ws[addr]) continue;
+            ws[addr].s = {
+                fill: { fgColor: { rgb: "00A65A" } },
+                font: { bold: true, color: { rgb: "FFFFFF" } },
+                alignment: { horizontal: "center" }
+            };
+        }
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Health Commission");
+        XLSX.writeFile(wb, `Partner_Health_Commission_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+</script>
+
+</body>
+</html>
